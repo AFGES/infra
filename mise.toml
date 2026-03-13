@@ -1,0 +1,4 @@
+[tools]
+"aqua:fish-shell/fish-shell" = "latest"
+bun = "latest"
+starship = "latest"
