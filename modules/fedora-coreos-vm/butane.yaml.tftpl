@@ -6,14 +6,43 @@ passwd:
   users:
     - name: ${ssh_admin_username}
       groups: ["wheel", "sudo", "systemd-journal"]
+      %{~ if password_hash != null ~}
+      password_hash: ${password_hash}
+      %{~ endif ~}
+      %{~ if length(ssh_authorized_keys) > 0 ~}
+      ssh_authorized_keys:
+        %{~ for key in ssh_authorized_keys ~}
+        - ${key}
+        %{~ endfor ~}
+      %{~ endif ~}
 
 
 storage:
   files:
     - path: /etc/hostname
       mode: 0644
+      overwrite: true
       contents:
         inline: ${hostname}
+
+    - path: /etc/vconsole.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          KEYMAP=fr
+          FONT=eurlatgr
+
+    - path: /etc/X11/xorg.conf.d/00-keyboard.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          Section "InputClass"
+            Identifier "system-keyboard"
+            MatchIsKeyboard "on"
+            Option "XkbLayout" "fr"
+          EndSection
 
 systemd:
   units:

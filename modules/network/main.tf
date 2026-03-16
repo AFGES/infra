@@ -1,8 +1,8 @@
 # SDN Zone - VXLAN
 resource "proxmox_virtual_environment_sdn_zone_vxlan" "proxmox_vxlan" {
-  id       = "vxlan1"
-  ipam     = "pve"
-  peers    = var.peers
+  id    = "vxlan1"
+  ipam  = "pve"
+  peers = var.peers
 
   depends_on = [
     proxmox_virtual_environment_sdn_applier.finalizer

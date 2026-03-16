@@ -4,20 +4,31 @@ locals {
   coreos_proxmoxve_stable = local.metadata.architectures.x86_64.artifacts.proxmoxve.formats["qcow2.xz"].disk
   download_url            = local.coreos_proxmoxve_stable.location
   download_sum            = local.coreos_proxmoxve_stable.sha256
-
-  kvm_args = var.ignition_config != null ? "-fw_cfg 'name=opt/com.coreos/config,string=${replace(data.ct_config.coreos_ignition, ",", ",,")}'" : null
 }
 
 data "ct_config" "coreos_ignition" {
   strict = true
   content = templatefile("${path.module}/butane.yaml.tftpl", {
-    ssh_admin_username = "admin"
-    hostname           = "coreos"
+    ssh_admin_username  = "admin"
+    hostname            = "coreos"
+    password_hash       = var.password_hash
+    ssh_authorized_keys = var.ssh_authorized_keys
   })
 }
 
 data "http" "coreos_stable_metadata" {
   url = "https://builds.coreos.fedoraproject.org/streams/stable.json"
+}
+
+resource "proxmox_virtual_environment_file" "coreos_ignition" {
+  content_type = "snippets"
+  datastore_id = "local"
+  node_name    = "squirtle"
+
+  source_raw {
+    data      = data.ct_config.coreos_ignition.rendered
+    file_name = "fedora-coreos-${var.name}.ign"
+  }
 }
 
 resource "proxmox_virtual_environment_download_file" "coreos_img" {
@@ -58,6 +69,4 @@ module "coreos-vm" {
     datastore_id = "ceph"
     format       = "qcow2"
   }
-
-  kvm_arguments = local.kvm_args
 }

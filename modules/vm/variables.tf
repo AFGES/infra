@@ -29,9 +29,9 @@ variable "cpu_cores" {
 variable "disk" {
   description = "Drive parameters"
   type = object({
-    size    = optional(number, 8),
-    file_id = optional(string),
-    format = optional(string),
+    size         = optional(number, 8),
+    file_id      = optional(string),
+    format       = optional(string),
     datastore_id = optional(string)
   })
   default = {}
@@ -66,3 +66,4 @@ variable "kvm_arguments" {
   type        = string
   default     = null
 }
+
