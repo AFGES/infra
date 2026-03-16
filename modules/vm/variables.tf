@@ -61,8 +61,8 @@ variable "template" {
   default     = false
 }
 
-variable "kvm_arguments" {
-  description = "KVM arguments to pass to machine, primarily used for Ignition config"
+variable "ignition_file_id" {
+  description = "Proxmox file ID of the Ignition config snippet (e.g. local:snippets/config.ign)"
   type        = string
   default     = null
 }

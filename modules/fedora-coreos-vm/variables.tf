@@ -41,12 +41,6 @@ variable "machine_type" {
   default     = "pc"
 }
 
-variable "ignition_config" {
-  description = "Rendered Ignition config to pass to VM via KVM args"
-  type        = string
-  default     = null
-}
-
 variable "template" {
   description = "Can be a template"
   type        = bool

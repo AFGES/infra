@@ -55,9 +55,8 @@ resource "proxmox_virtual_environment_vm" "this" {
       username = "core"
       password = "afges1234"
     }
+    vendor_data_file_id = var.ignition_file_id
   }
-
-  kvm_arguments = var.kvm_arguments
 
   # Ignore changes to the network
   ## MAC address is generated on every apply, causing
