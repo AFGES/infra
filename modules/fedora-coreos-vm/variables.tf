@@ -52,3 +52,31 @@ variable "start_on_provision" {
   type        = bool
   default     = false
 }
+
+variable "password_hash" {
+  description = "Hashed password for the admin user (e.g. generated with `openssl passwd -6`)"
+  type        = string
+  default     = null
+  sensitive   = true
+}
+
+variable "ssh_authorized_keys" {
+  description = "List of SSH public keys to authorize for the admin user"
+  type        = list(string)
+  default     = []
+}
+
+variable "data_disk" {
+  description = "Additional data disk for podman volumes (mounted at /var/lib/containers/storage)"
+  type = object({
+    size         = optional(number, 20),
+    datastore_id = optional(string, "ceph")
+  })
+  default = null
+}
+
+variable "user" {
+  description = "User name"
+  type        = string
+  default     = "core"
+}

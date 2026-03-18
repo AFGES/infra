@@ -18,6 +18,23 @@ passwd:
 
 
 storage:
+  disks:
+    - device: /dev/sdb
+      wipe_table: false
+      partitions:
+        - number: 1
+          label: podman-data
+          size_mib: 0
+          start_mib: 0
+
+  filesystems:
+    - path: /var/lib/containers/storage
+      device: /dev/disk/by-partlabel/podman-data
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+      label: podman-data
+
   files:
     - path: /etc/hostname
       mode: 0644

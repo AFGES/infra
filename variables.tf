@@ -11,7 +11,7 @@ variable "proxmox_api_token" {
 }
 
 variable "password" {
-  description = "Password for the Proxmox VE API token"
+  description = "Password for the CoreOS default user"
   type        = string
   sensitive   = true
 }

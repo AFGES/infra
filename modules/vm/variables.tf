@@ -67,3 +67,12 @@ variable "ignition_file_id" {
   default     = null
 }
 
+variable "data_disk" {
+  description = "Optional second disk for data storage (e.g. podman volumes)"
+  type = object({
+    size         = optional(number, 20),
+    datastore_id = optional(string)
+  })
+  default = null
+}
+

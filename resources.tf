@@ -18,5 +18,10 @@ module "fedora-coreos-vm" {
     size = 20
   }
 
+  data_disk = {
+    size         = 20
+    datastore_id = "ceph"
+  }
+
   password_hash = bcrypt(var.password)
 }

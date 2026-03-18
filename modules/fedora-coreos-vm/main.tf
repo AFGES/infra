@@ -69,4 +69,6 @@ module "coreos-vm" {
     datastore_id = "ceph"
     format       = "qcow2"
   }
+
+  data_disk = var.data_disk
 }
