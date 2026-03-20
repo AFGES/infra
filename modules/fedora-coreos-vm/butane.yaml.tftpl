@@ -54,13 +54,11 @@ systemd:
         Wants=network-online.target
         After=network-online.target
         Before=zincati.service
-        ConditionPathExists=!/var/lib/%N.stamp
+        ConditionFirstBoot=yes
 
         [Service]
         Type=oneshot
-        RemainAfterExit=yes
         ExecStart=rpm-ostree install --allow-inactive --assumeyes --reboot qemu-guest-agent
-        ExecStart=/bin/touch /var/lib/%N.stamp
 
         [Install]
         WantedBy=multi-user.target
