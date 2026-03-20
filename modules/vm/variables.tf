@@ -1,3 +1,9 @@
+variable "clone_vm_id" {
+  description = "VM ID to clone from. When set, creates a clone of the specified VM instead of importing a disk image."
+  type        = number
+  default     = null
+}
+
 variable "id" {
   description = "ID of the VM"
   type        = number
@@ -75,4 +81,3 @@ variable "data_disk" {
   })
   default = null
 }
-

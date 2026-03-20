@@ -67,8 +67,9 @@ module "coreos-vm" {
 
     file_id      = proxmox_virtual_environment_download_file.coreos_img.id
     datastore_id = "ceph"
-    format       = "qcow2"
   }
 
   data_disk = var.data_disk
+
+  ignition_file_id = proxmox_virtual_environment_file.coreos_ignition.id
 }

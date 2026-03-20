@@ -10,8 +10,15 @@ variable "proxmox_api_token" {
   sensitive   = true
 }
 
-variable "password" {
-  description = "Password for the CoreOS default user"
-  type        = string
+# variable "password" {
+#   description = "Password for the CoreOS default user"
+#   type        = string
+#   sensitive   = true
+# }
+
+variable "ssh_authorized_keys" {
+  description = "SSH public key for the CoreOS default user"
+  type        = list(string)
+  default     = ["ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOCYJur93Hd1pML/8tfzkWYMlWqGZFnGnbMCKQ89xW7j coles@tuta.io"]
   sensitive   = true
 }

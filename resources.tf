@@ -23,5 +23,39 @@ module "fedora-coreos-vm" {
     datastore_id = "ceph"
   }
 
-  password_hash = bcrypt(var.password)
+  # password_hash = bcrypt(var.password)
+  ssh_authorized_keys = var.ssh_authorized_keys
+}
+
+
+module "fedora-coreos-node" {
+  source = "./modules/vm"
+
+  depends_on = [module.fedora-coreos-vm]
+
+  id           = 901
+  name         = "fedora-coreos-node"
+  machine_type = "q35"
+
+  clone_vm_id = 900
+
+  start_on_provision = true
+  start_on_boot      = true
+  template           = false
+
+  cpu_cores = 2
+  memory    = 2
+
+  # datastore_id is used by the initialization block (cloud-init/ignition drive)
+  # and must point to a storage that supports the "images" content type
+  disk = {
+    datastore_id = "ceph"
+  }
+
+  ignition_file_id = module.fedora-coreos-vm.ignition_file_id
+
+  data_disk = {
+    size         = 20
+    datastore_id = "ceph"
+  }
 }

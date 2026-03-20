@@ -23,14 +23,23 @@ resource "proxmox_virtual_environment_vm" "this" {
     type  = "host"
   }
 
-  disk {
-    interface = "scsi0"
-    size      = var.disk.size
+  dynamic "clone" {
+    for_each = var.clone_vm_id != null ? [var.clone_vm_id] : []
+    content {
+      vm_id = clone.value
+      full  = true
+    }
+  }
 
-    import_from = var.disk.file_id
-    file_format = var.disk.format
-
-    datastore_id = var.disk.datastore_id
+  dynamic "disk" {
+    for_each = var.clone_vm_id == null ? [var.disk] : []
+    content {
+      interface    = "scsi0"
+      size         = disk.value.size
+      import_from  = disk.value.file_id
+      file_format  = disk.value.format
+      datastore_id = disk.value.datastore_id
+    }
   }
 
   dynamic "disk" {
@@ -50,6 +59,7 @@ resource "proxmox_virtual_environment_vm" "this" {
     bridge = "vmbr0"
     model  = "virtio"
   }
+
   operating_system {
     type = var.os_type
   }
@@ -59,11 +69,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   initialization {
-    datastore_id = var.disk.datastore_id
-    user_account {
-      username = "core"
-      password = "afges1234"
-    }
+    datastore_id        = coalesce(var.disk.datastore_id, "local")
     vendor_data_file_id = var.ignition_file_id
   }
 
@@ -74,6 +80,7 @@ resource "proxmox_virtual_environment_vm" "this" {
     ignore_changes = [
       started,
       network_device,
+      initialization,
     ]
   }
 }
