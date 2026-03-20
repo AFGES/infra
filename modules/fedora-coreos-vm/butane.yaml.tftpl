@@ -36,12 +36,6 @@ storage:
       label: podman-data
 
   files:
-    - path: /etc/hostname
-      mode: 0644
-      overwrite: true
-      contents:
-        inline: ${hostname}
-
     - path: /etc/vconsole.conf
       mode: 0644
       overwrite: true
@@ -49,17 +43,6 @@ storage:
         inline: |
           KEYMAP=fr
           FONT=eurlatgr
-
-    - path: /etc/X11/xorg.conf.d/00-keyboard.conf
-      mode: 0644
-      overwrite: true
-      contents:
-        inline: |
-          Section "InputClass"
-            Identifier "system-keyboard"
-            MatchIsKeyboard "on"
-            Option "XkbLayout" "fr"
-          EndSection
 
 systemd:
   units:

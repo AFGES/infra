@@ -10,7 +10,6 @@ data "ct_config" "coreos_ignition" {
   strict = true
   content = templatefile("${path.module}/butane.yaml.tftpl", {
     ssh_admin_username  = "admin"
-    hostname            = "coreos"
     password_hash       = var.password_hash
     ssh_authorized_keys = var.ssh_authorized_keys
   })
