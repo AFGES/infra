@@ -82,6 +82,18 @@ variable "data_disk" {
   default = null
 }
 
+variable "attached_disks" {
+  description = "List of external disks to attach (from persistent-disk module). These disks are not managed by this VM and will persist across rebuilds."
+  type = list(object({
+    datastore_id      = string
+    path_in_datastore = string
+    file_format       = string
+    size              = number
+    interface         = string
+  }))
+  default = []
+}
+
 variable "triggers_replace" {
   description = "A value that, when changed, triggers replacement of this VM (e.g. a template version hash). Useful for forcing clone recreation when the source template is modified."
   type        = any

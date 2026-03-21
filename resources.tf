@@ -26,11 +26,29 @@ module "fedora-coreos-vm" {
   ssh_authorized_keys = var.ssh_authorized_keys
 }
 
+# Persistent data disk for fedora-coreos-node
+# This disk survives VM rebuilds when the template changes
+module "fedora-coreos-node-data" {
+  source = "./modules/persistent-disk"
+
+  node_name = "squirtle"
+  vm_id     = 911
+  name      = "fedora-coreos-node-data"
+
+  disks = [
+    {
+      size         = 20
+      datastore_id = "ceph"
+      file_format  = "raw"
+    }
+  ]
+}
+
 
 module "fedora-coreos-node" {
   source = "./modules/vm"
 
-  depends_on = [module.fedora-coreos-vm]
+  depends_on = [module.fedora-coreos-vm, module.fedora-coreos-node-data]
 
   triggers_replace = module.fedora-coreos-vm.template_version
 
@@ -55,8 +73,15 @@ module "fedora-coreos-node" {
 
   ignition_file_id = module.fedora-coreos-vm.ignition_file_id
 
-  data_disk = {
-    size         = 20
-    datastore_id = "ceph"
-  }
+  # Attach persistent data disk that survives VM rebuilds
+  attached_disks = [
+    for idx, disk in module.fedora-coreos-node-data.disks : {
+      datastore_id      = disk.datastore_id
+      path_in_datastore = disk.path_in_datastore
+      file_format       = disk.file_format
+      size              = disk.size
+      # Assign from scsi1 onwards (scsi0 is the OS disk)
+      interface = "scsi${idx + 1}"
+    }
+  ]
 }
