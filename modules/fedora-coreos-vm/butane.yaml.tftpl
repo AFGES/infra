@@ -45,6 +45,31 @@ storage:
       contents:
         source: https://extensions.fcos.fr/fedora/qemu-guest-agent.conf
 
+    - path: /etc/containers/systemd/doco-cd.container
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Unit]
+          Description=Doco-CD Container
+          Wants=network-online.target
+          After=network-online.target
+
+          [Container]
+          Image=ghcr.io/kimdre/doco-cd:latest
+          AutoUpdate=registry
+          Pull=newer
+          PodmanArgs=--privileged
+          Volume=/run/podman/podman.sock:/var/run/docker.sock
+          Environment=POLL_CONFIG="- url: https://github.com/afges/%l.git"
+
+          [Service]
+          Restart=always
+          RestartSec=10
+
+          [Install]
+          WantedBy=multi-user.target default.target
+
   directories:
     - path: /var/lib/extensions
       mode: 0755
@@ -54,6 +79,12 @@ storage:
 systemd:
   units:
     - name: systemd-sysext.service
+      enabled: true
+
+    - name: podman.socket
+      enabled: true
+
+    - name: podman-auto-update.timer
       enabled: true
 
     - name: "install-qemu-guest-agent-sysext.service"
