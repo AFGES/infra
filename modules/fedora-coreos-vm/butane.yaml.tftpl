@@ -4,11 +4,7 @@ version: 1.5.0
 
 passwd:
   users:
-    - name: ${ssh_admin_username}
-      groups: ["wheel", "sudo", "systemd-journal"]
-      %{~ if password_hash != null ~}
-      password_hash: ${password_hash}
-      %{~ endif ~}
+    - name: core
       %{~ if length(ssh_authorized_keys) > 0 ~}
       ssh_authorized_keys:
         %{~ for key in ssh_authorized_keys ~}
@@ -42,7 +38,6 @@ storage:
       contents:
         inline: |
           KEYMAP=fr
-          FONT=eurlatgr
 
 systemd:
   units:

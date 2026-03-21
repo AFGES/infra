@@ -55,6 +55,19 @@ resource "proxmox_virtual_environment_vm" "this" {
     }
   }
 
+  # Attached disks from external disk containers
+  # These disks persist across VM rebuilds
+  dynamic "disk" {
+    for_each = var.attached_disks
+    content {
+      datastore_id      = disk.value.datastore_id
+      path_in_datastore = disk.value.path_in_datastore
+      file_format       = disk.value.file_format
+      size              = disk.value.size
+      interface         = disk.value.interface
+    }
+  }
+
   memory {
     dedicated = 1024 * var.memory
   }

@@ -10,12 +10,6 @@ variable "proxmox_api_token" {
   sensitive   = true
 }
 
-# variable "password" {
-#   description = "Password for the CoreOS default user"
-#   type        = string
-#   sensitive   = true
-# }
-
 variable "ssh_authorized_keys" {
   description = "SSH public key for the CoreOS default user"
   type        = list(string)

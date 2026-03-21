@@ -23,7 +23,6 @@ module "fedora-coreos-vm" {
     datastore_id = "ceph"
   }
 
-  # password_hash = bcrypt(var.password)
   ssh_authorized_keys = var.ssh_authorized_keys
 }
 
