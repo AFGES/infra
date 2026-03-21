@@ -18,10 +18,8 @@ module "fedora-coreos-vm" {
     size = 20
   }
 
-  data_disk = {
-    size         = 20
-    datastore_id = "ceph"
-  }
+  # No data_disk on template - clones will attach persistent disks instead
+  # data_disk = null
 
   ssh_authorized_keys = var.ssh_authorized_keys
 }
