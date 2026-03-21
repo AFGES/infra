@@ -33,6 +33,8 @@ module "fedora-coreos-node" {
 
   depends_on = [module.fedora-coreos-vm]
 
+  triggers_replace = module.fedora-coreos-vm.template_version
+
   id           = 901
   name         = "fedora-coreos-node"
   machine_type = "q35"

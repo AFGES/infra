@@ -1,3 +1,7 @@
+resource "terraform_data" "triggers" {
+  input = var.triggers_replace
+}
+
 resource "proxmox_virtual_environment_vm" "this" {
   node_name = "squirtle"
   vm_id     = var.id
@@ -77,6 +81,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   ## MAC address is generated on every apply, causing
   ## TF to think this needs to be rebuilt on every apply
   lifecycle {
+    replace_triggered_by = [terraform_data.triggers]
     ignore_changes = [
       started,
       network_device,

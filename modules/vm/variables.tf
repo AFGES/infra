@@ -81,3 +81,9 @@ variable "data_disk" {
   })
   default = null
 }
+
+variable "triggers_replace" {
+  description = "A value that, when changed, triggers replacement of this VM (e.g. a template version hash). Useful for forcing clone recreation when the source template is modified."
+  type        = any
+  default     = null
+}
