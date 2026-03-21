@@ -39,21 +39,39 @@ storage:
         inline: |
           KEYMAP=fr
 
+    - path: /etc/sysupdate.qemu-guest-agent.d/qemu-guest-agent.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        source: https://extensions.fcos.fr/fedora/qemu-guest-agent.conf
+
+  directories:
+    - path: /var/lib/extensions
+      mode: 0755
+    - path: /var/lib/extensions.d
+      mode: 0755
+
 systemd:
   units:
-    - name: "install-qemu-guest-agent.service"
+    - name: systemd-sysext.service
+      enabled: true
+
+    - name: "install-qemu-guest-agent-sysext.service"
       enabled: true
       contents: |
         [Unit]
-        Description=Ensure qemu-guest-agent is installed
+        Description=Install qemu-guest-agent sysext
         Wants=network-online.target
-        After=network-online.target
-        Before=zincati.service
+        After=network-online.target systemd-sysext.service
+        ConditionPathExists=!/var/lib/extensions.d/qemu-guest-agent-*.raw
         ConditionFirstBoot=yes
 
         [Service]
         Type=oneshot
-        ExecStart=rpm-ostree install --allow-inactive --assumeyes --reboot qemu-guest-agent
+        RemainAfterExit=yes
+        SELinuxContext=system_u:system_r:unconfined_t:s0
+        ExecStart=/usr/lib/systemd/systemd-sysupdate update --component qemu-guest-agent
+        ExecStartPost=/usr/bin/systemctl restart systemd-sysext.service
 
         [Install]
         WantedBy=multi-user.target
