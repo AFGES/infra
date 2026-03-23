@@ -12,6 +12,7 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   keyboard_layout = "fr"
 
+  bios    = var.bios
   machine = var.machine_type
   on_boot = var.start_on_boot
   started = var.start_on_provision
@@ -32,6 +33,16 @@ resource "proxmox_virtual_environment_vm" "this" {
     content {
       vm_id = clone.value
       full  = true
+    }
+  }
+
+  dynamic "efi_disk" {
+    for_each = var.bios == "ovmf" ? [var.efi_disk] : []
+    content {
+      datastore_id      = efi_disk.value.datastore_id
+      file_format       = efi_disk.value.file_format
+      type              = efi_disk.value.type
+      pre_enrolled_keys = efi_disk.value.pre_enrolled_keys
     }
   }
 

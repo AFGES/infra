@@ -58,7 +58,7 @@ variable "os_type" {
 variable "machine_type" {
   description = "VM machine type"
   type        = string
-  default     = "pc"
+  default     = "q35"
 }
 
 variable "template" {
@@ -98,4 +98,31 @@ variable "triggers_replace" {
   description = "A value that, when changed, triggers replacement of this VM (e.g. a template version hash). Useful for forcing clone recreation when the source template is modified."
   type        = any
   default     = null
+}
+
+variable "bios" {
+  description = "BIOS implementation (seabios for legacy BIOS, ovmf for UEFI)"
+  type        = string
+  default     = "ovmf"
+
+  validation {
+    condition     = contains(["ovmf", "seabios"], var.bios)
+    error_message = "BIOS must be either 'ovmf' (UEFI) or 'seabios' (legacy BIOS)."
+  }
+}
+
+variable "efi_disk" {
+  description = "EFI disk configuration (required when using UEFI/ovmf bios)"
+  type = object({
+    datastore_id      = optional(string, "ceph")
+    file_format       = optional(string, "raw")
+    type              = optional(string, "4m")
+    pre_enrolled_keys = optional(bool, false)
+  })
+  default = {
+    datastore_id      = "ceph"
+    file_format       = "raw"
+    type              = "4m"
+    pre_enrolled_keys = false
+  }
 }
