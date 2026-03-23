@@ -57,13 +57,19 @@ variable "default_machine_type" {
   default     = "q35"
 }
 
+variable "default_ha_enabled" {
+  description = "Default behavior for High Availability protection (can be overridden per-node)"
+  type        = bool
+  default     = true
+}
+
 # Node definitions
 
 variable "nodes" {
   description = <<-EOT
     Map of node configurations. The map key will be used as the VM name.
     Each node will get VM ID = 2000 + id and disk container ID = 9000 + id.
-    
+
     Example:
     nodes = {
       web = {
@@ -87,6 +93,7 @@ variable "nodes" {
     machine_type       = optional(string)
     start_on_boot      = optional(bool)
     start_on_provision = optional(bool)
+    ha_enabled         = optional(bool)
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")
@@ -101,7 +108,7 @@ variable "nodes" {
   }
 
   validation {
-    condition = length(var.nodes) == length(distinct([for k, v in var.nodes : v.id]))
+    condition     = length(var.nodes) == length(distinct([for k, v in var.nodes : v.id]))
     error_message = "All node IDs must be unique."
   }
 }

@@ -1,3 +1,6 @@
+# Auto-discover all available nodes in the Proxmox cluster
+data "proxmox_virtual_environment_nodes" "available" {}
+
 # Calculate actual VM IDs with prefixes
 # VM IDs: 2000 + id (e.g., id=1 becomes 2001)
 # Disk container IDs: 9000 + id (e.g., id=1 becomes 9001)
@@ -17,6 +20,19 @@ locals {
   nodes_with_disks = {
     for k, v in var.nodes : k => v
     if v.persistent_disk != null
+  }
+
+  # Extract online nodes for HA group
+  # Use all nodes with null priority (no preference)
+  ha_nodes = {
+    for name in data.proxmox_virtual_environment_nodes.available.names :
+    name => null
+  }
+
+  # Filter nodes that have HA enabled
+  ha_enabled_nodes = {
+    for k, v in var.nodes : k => v
+    if coalesce(v.ha_enabled, var.default_ha_enabled)
   }
 }
 
@@ -80,4 +96,21 @@ module "vms" {
       interface = "scsi${idx + 1}"
     }
   ] : []
+}
+
+# Create HA resources for VMs with HA enabled
+# Note: In Proxmox VE 9+, HA groups have been replaced by HA rules
+# For simple HA protection, we just need to register resources with the HA manager
+resource "proxmox_virtual_environment_haresource" "vms" {
+  for_each = local.ha_enabled_nodes
+
+  depends_on = [module.vms]
+
+  resource_id = "vm:${module.vms[each.key].vm_id}"
+  state       = "started"
+  comment     = "HA-protected ${each.key} (managed by OpenTofu)"
+
+  # Restart limits
+  max_restart  = 3 # Try restarting 3 times on same node
+  max_relocate = 2 # Try relocating 2 times to different nodes
 }
