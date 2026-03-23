@@ -1,4 +1,4 @@
-output "fedora_coreos_node_ipv4" {
-  description = "IPv4 addresses of the fedora-coreos-node VM"
-  value       = module.fedora-coreos-node.ipv4_addresses
+output "fedora_coreos_nodes" {
+  description = "Map of all Fedora CoreOS node details (VM IDs, names, IP addresses)"
+  value       = module.fedora_coreos_nodes.vms
 }

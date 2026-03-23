@@ -30,62 +30,50 @@ module "fedora-coreos-vm" {
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
 }
 
-# Persistent data disk for fedora-coreos-node
-# This disk survives VM rebuilds when the template changes
-module "fedora-coreos-node-data" {
-  source = "./modules/persistent-disk"
+# Fedora CoreOS cloned VMs with optional persistent disks
+# Uses the fedora-coreos-nodes module to create multiple VMs from the template
+# VM IDs: 2000 + id (e.g., id=1 becomes 2001)
+# Disk container IDs: 9000 + id (e.g., id=1 becomes 9001)
+module "fedora_coreos_nodes" {
+  source = "./modules/fedora-coreos-nodes"
 
-  node_name = "squirtle"
-  vm_id     = 911
-  name      = "fedora-coreos-node-data"
-
-  disks = [
-    {
-      size         = 20
-      datastore_id = "ceph"
-      file_format  = "raw"
-    }
-  ]
-}
-
-
-module "fedora-coreos-node" {
-  source = "./modules/vm"
-
-  depends_on = [module.fedora-coreos-vm, module.fedora-coreos-node-data]
-
-  triggers_replace = module.fedora-coreos-vm.template_version
-
-  id           = 901
-  name         = "fedora-coreos-node"
-  machine_type = "q35"
-
-  clone_vm_id = 900
-
-  start_on_provision = true
-  start_on_boot      = true
-  template           = false
-
-  cpu_cores = 2
-  memory    = 2
-
-  # datastore_id is used by the initialization block (cloud-init/ignition drive)
-  # and must point to a storage that supports the "images" content type
-  disk = {
-    datastore_id = "ceph"
-  }
-
+  template_vm_id   = module.fedora-coreos-vm.vm_id
+  template_version = module.fedora-coreos-vm.template_version
   ignition_file_id = module.fedora-coreos-vm.ignition_file_id
 
-  # Attach persistent data disk that survives VM rebuilds
-  attached_disks = [
-    for idx, disk in module.fedora-coreos-node-data.disks : {
-      datastore_id      = disk.datastore_id
-      path_in_datastore = disk.path_in_datastore
-      file_format       = disk.file_format
-      size              = disk.size
-      # Assign from scsi1 onwards (scsi0 is the OS disk)
-      interface = "scsi${idx + 1}"
+  # Cluster-wide defaults (can be overridden per-node)
+  default_cpu_cores          = 2
+  default_memory             = 2
+  default_disk_size          = 20
+  default_node_name          = "squirtle"
+  default_start_on_boot      = true
+  default_start_on_provision = true
+  default_machine_type       = "q35"
+
+  nodes = {
+    # First node with persistent disk
+    # VM ID: 2001, Disk Container: 9001
+    fedora-coreos-node = {
+      id = 1
+      persistent_disk = {
+        size = 20
+      }
     }
-  ]
+
+    # Example: Add more nodes by uncommenting and configuring below
+    # node2 = {
+    #   id = 2  # VM ID: 2002, Disk Container: 9002
+    #   cpu_cores = 4
+    #   memory = 4
+    #   persistent_disk = {
+    #     size = 50
+    #   }
+    # }
+    #
+    # worker = {
+    #   id = 3  # VM ID: 2003, no persistent disk
+    #   cpu_cores = 2
+    #   # No persistent_disk = ephemeral node
+    # }
+  }
 }
