@@ -1,4 +1,8 @@
 [tools]
 "aqua:fish-shell/fish-shell" = "latest"
 bun = "latest"
+sops = "latest"
 starship = "latest"
+
+[env]
+SOPS_AGE_KEY_FILE = "~/.config/sops/age/keys.txt"

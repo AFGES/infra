@@ -10,6 +10,7 @@ data "ct_config" "coreos_ignition" {
   strict = true
   content = templatefile("${path.module}/butane.yaml.tftpl", {
     ssh_authorized_keys = var.ssh_authorized_keys
+    sops_age_key        = var.sops_age_key
   })
 }
 

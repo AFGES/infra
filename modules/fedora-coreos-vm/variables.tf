@@ -80,3 +80,10 @@ variable "user" {
   type        = string
   default     = "core"
 }
+
+variable "sops_age_key" {
+  description = "SOPS AGE private key for decrypting secrets"
+  type        = string
+  sensitive   = true
+  default     = ""
+}

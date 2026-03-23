@@ -1,3 +1,8 @@
+# Read encrypted secrets using SOPS
+data "sops_file" "secrets" {
+  source_file = "secrets.yaml"
+}
+
 module "network" {
   source = "./modules/network"
   peers  = ["192.168.3.1", "192.168.3.2", "192.168.3.3"]
@@ -22,6 +27,7 @@ module "fedora-coreos-vm" {
   # data_disk = null
 
   ssh_authorized_keys = var.ssh_authorized_keys
+  sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
 }
 
 # Persistent data disk for fedora-coreos-node
