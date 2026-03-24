@@ -4,8 +4,6 @@ version: 1.1.0
 passwd:
   users:
     - name: core
-      groups:
-        - docker
       ssh_authorized_keys: ${ssh_authorized_keys}
 
 storage:
@@ -50,7 +48,7 @@ systemd:
         ExecStart=/usr/bin/docker run --name doco-cd --rm --privileged \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v doco-cd.volume:/data \
-          -e POLL_CONFIG="- url: https://github.com/afges/%%l.git" \%{if sops_age_key != ""}
+          -e POLL_CONFIG="- url: https://github.com/afges/%l.git" \%{if sops_age_key != ""}
           -e SOPS_AGE_KEY=${sops_age_key} \%{endif}
           ghcr.io/kimdre/doco-cd:latest
 
