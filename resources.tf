@@ -53,7 +53,7 @@ module "fedora_coreos_nodes" {
   nodes = {
     # First node with persistent disk
     # VM ID: 2001, Disk Container: 9001
-    fedora-coreos-node = {
+    reverse-proxy = {
       id = 1
       persistent_disk = {
         size = 20
