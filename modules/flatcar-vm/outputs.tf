@@ -3,17 +3,16 @@ output "vm_ids" {
   value       = local.vm_ids
 }
 
-# output "vms" {
-#   description = "Information about the created VMs"
-#   value = {
-#     for k, v in module.vms : k => {
-#       vm_id        = v.id
-#       name         = v.name
-#       ipv4_address = v.ipv4_address
-#       ipv6_address = v.ipv6_address
-#     }
-#   }
-# }
+output "vms" {
+  description = "Information about the created VMs"
+  value = {
+    for k, v in module.vms : k => {
+      vm_id         = v.vm_id
+      name          = v.name
+      ipv4_addresses = v.ipv4_addresses
+    }
+  }
+}
 
 output "persistent_disks" {
   description = "Information about persistent disk containers"
