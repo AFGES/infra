@@ -102,6 +102,9 @@ module "vms" {
   start_on_provision = coalesce(each.value.start_on_provision, var.default_start_on_provision)
   ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition.id
 
+  # Rebuild VMs when Butane config changes
+  triggers_replace = sha256(data.ct_config.flatcar_ignition.rendered)
+
   disk = {
     size         = 20
     file_id      = proxmox_virtual_environment_download_file.flatcar_img.id
