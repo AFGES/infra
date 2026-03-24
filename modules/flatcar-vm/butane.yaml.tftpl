@@ -1,0 +1,58 @@
+variant: flatcar
+version: 1.1.0
+
+passwd:
+  users:
+    - name: core
+      groups:
+        - docker
+      ssh_authorized_keys: ${ssh_authorized_keys}
+
+storage:
+  disks:
+    - device: /dev/sdb
+      wipe_table: false
+      partitions:
+        - number: 1
+          label: docker-data
+          size_mib: 0
+          start_mib: 0
+  filesystems:
+    - path: /var/lib/docker/volumes
+      device: /dev/disk/by-partlabel/docker-data
+      format: xfs
+      wipe_filesystem: false
+      with_mount_unit: true
+      label: docker-data
+  files:
+    - path: /etc/vconsole.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          KEYMAP=fr
+
+systemd:
+  units:
+    - name: docker.service
+      enabled: true
+    - name: doco-cd.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Doco-CD Service
+        Wants=network-online.target docker.service
+        After=network-online.target docker.service
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/usr/bin/docker run --name doco-cd --rm --privileged \
+          -v /var/run/docker.sock:/var/run/docker.sock \
+          -v doco-cd.volume:/data \
+          -e POLL_CONFIG="- url: https://github.com/afges/%%l.git" \%{if sops_age_key != ""}
+          -e SOPS_AGE_KEY=${sops_age_key} \%{endif}
+          ghcr.io/kimdre/doco-cd:latest
+
+        [Install]
+        WantedBy=multi-user.target
