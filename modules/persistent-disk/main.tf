@@ -7,8 +7,8 @@ resource "proxmox_virtual_environment_vm" "disk_container" {
   vm_id     = var.vm_id
   name      = var.name
 
-  started = false
-  on_boot = false
+  started  = false
+  on_boot  = false
   template = false
 
   description = "Disk container for ${var.name}, managed by OpenTofu. Never start this VM."
@@ -47,7 +47,7 @@ resource "proxmox_virtual_environment_vm" "disk_container" {
   lifecycle {
     # Prevent accidental deletion of disks
     prevent_destroy = false
-    
+
     # Ignore changes that don't affect the disks
     ignore_changes = [
       started,

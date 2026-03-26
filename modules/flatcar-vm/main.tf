@@ -5,6 +5,16 @@ locals {
   ha_nodes         = { for name in data.proxmox_virtual_environment_nodes.available.names : name => null }
   ha_enabled_nodes = { for k, v in var.nodes : k => v if coalesce(v.ha_enabled, var.default_ha_enabled) }
 
+  # Compute effective network interfaces per node
+  node_network_interfaces = {
+    for k, v in var.nodes : k => coalesce(
+      v.network_interfaces,
+      v.internet_access == true
+      ? [{ bridge = "vnet0", model = "virtio", vlan_id = null, mac_address = null }, { bridge = "vmbr0", model = "virtio", vlan_id = null, mac_address = null }]
+      : [{ bridge = "vnet0", model = "virtio", vlan_id = null, mac_address = null }]
+    )
+  }
+
   flatcar_metadata = {
     for match in regexall("([A-Z0-9_]+)=[\"']?([^\"'\n\r]+)[\"']?", data.http.flatcar_current_metadata.response_body) :
     lower(trimprefix(match[0], "FLATCAR_")) => match[1]
@@ -101,6 +111,23 @@ module "vms" {
   start_on_boot      = coalesce(each.value.start_on_boot, var.default_start_on_boot)
   start_on_provision = coalesce(each.value.start_on_provision, var.default_start_on_provision)
   ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition.id
+
+  # Use computed network_interfaces based on internet_access flag
+  network_interfaces = local.node_network_interfaces[each.key]
+
+  # IP configuration: static IP on vnet0, DHCP on additional interfaces
+  ip_configs = concat(
+    # First interface (vnet0): static IP based on node ID
+    [{
+      ipv4_address = "10.20.0.${each.value.id}/24"
+    }],
+    [
+      for i in range(length(local.node_network_interfaces[each.key]) - 1) : {
+        ipv4_address = "dhcp"
+        ipv4_gateway = null
+      }
+    ]
+  )
 
   # Rebuild VMs when Butane config changes
   triggers_replace = sha256(data.ct_config.flatcar_ignition.rendered)

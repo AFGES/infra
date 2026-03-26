@@ -83,9 +83,14 @@ resource "proxmox_virtual_environment_vm" "this" {
     dedicated = 1024 * var.memory
   }
 
-  network_device {
-    bridge = "vmbr0"
-    model  = "virtio"
+  dynamic "network_device" {
+    for_each = var.network_interfaces
+    content {
+      bridge      = network_device.value.bridge
+      model       = network_device.value.model
+      vlan_id     = network_device.value.vlan_id
+      mac_address = network_device.value.mac_address
+    }
   }
 
   operating_system {
@@ -99,6 +104,16 @@ resource "proxmox_virtual_environment_vm" "this" {
   initialization {
     datastore_id        = coalesce(var.disk.datastore_id, "local")
     vendor_data_file_id = var.ignition_file_id
+
+    dynamic "ip_config" {
+      for_each = var.ip_configs
+      content {
+        ipv4 {
+          address = ip_config.value.ipv4_address
+          gateway = ip_config.value.ipv4_gateway
+        }
+      }
+    }
   }
 
   # Ignore changes to the network

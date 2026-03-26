@@ -7,8 +7,8 @@ output "vms" {
   description = "Information about the created VMs"
   value = {
     for k, v in module.vms : k => {
-      vm_id         = v.vm_id
-      name          = v.name
+      vm_id          = v.vm_id
+      name           = v.name
       ipv4_addresses = v.ipv4_addresses
     }
   }

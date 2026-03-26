@@ -126,3 +126,28 @@ variable "efi_disk" {
     pre_enrolled_keys = false
   }
 }
+
+variable "network_interfaces" {
+  description = "List of network interface configurations for the VM"
+  type = list(object({
+    bridge      = string
+    model       = optional(string, "virtio")
+    vlan_id     = optional(number)
+    mac_address = optional(string)
+  }))
+  default = [{
+    bridge      = "vnet0"
+    model       = "virtio"
+    vlan_id     = null
+    mac_address = null
+  }]
+}
+
+variable "ip_configs" {
+  description = "IP configuration per network interface (one entry per network_interface, in order)"
+  type = list(object({
+    ipv4_address = optional(string) # CIDR notation or "dhcp"
+    ipv4_gateway = optional(string) # omit when using dhcp
+  }))
+  default = []
+}

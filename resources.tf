@@ -37,6 +37,7 @@ module "flatcar_nodes" {
       persistent_disk = {
         size = 20
       }
+      internet_access = true
     }
 
     # Example: Add more nodes by uncommenting and configuring below

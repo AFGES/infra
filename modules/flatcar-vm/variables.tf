@@ -21,10 +21,17 @@ variable "nodes" {
     start_on_boot      = optional(bool)
     start_on_provision = optional(bool)
     ha_enabled         = optional(bool)
+    internet_access    = optional(bool, false)
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")
     }))
+    network_interfaces = optional(list(object({
+      bridge      = string
+      model       = optional(string, "virtio")
+      vlan_id     = optional(number)
+      mac_address = optional(string)
+    })))
   }))
 
   validation {
