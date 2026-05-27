@@ -1,0 +1,13 @@
+[Unit]
+Description=IPMI Exporter
+After=network-online.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/ipmi_exporter
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target

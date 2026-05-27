@@ -4,3 +4,6 @@
 
 - name: Include no-nag tasks
   ansible.builtin.include_tasks: no-nag.yml
+
+- name: Include IPMI exporter tasks
+  ansible.builtin.include_tasks: ipmi.yml

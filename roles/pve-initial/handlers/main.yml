@@ -4,4 +4,8 @@
 - name: Reinstall proxmox-widget-toolkit
   ansible.builtin.command: apt --reinstall install proxmox-widget-toolkit
 
-
+- name: Reload systemd and restart ipmi_exporter
+  ansible.builtin.systemd:
+      name: ipmi_exporter
+      state: restarted
+      daemon_reload: true
