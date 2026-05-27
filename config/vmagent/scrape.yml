@@ -51,3 +51,13 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: pve-exporter:9221
+
+  # IPMI metrics via ipmi_exporter (port 9290) — one per node
+  - job_name: "pve-ipmi"
+    static_configs:
+      - targets:
+          - "192.168.1.102:9290"  # pve-node-1
+          - "192.168.1.104:9290"  # pve-node-2
+          - "192.168.1.106:9290"  # pve-node-3
+        labels:
+          environment: "pve"
