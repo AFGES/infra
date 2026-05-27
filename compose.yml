@@ -87,6 +87,14 @@ services:
       - "pangolin.public-resources.alertmanager.targets[0].healthcheck.path=/-/healthy"
       - "pangolin.public-resources.alertmanager.targets[0].healthcheck.status=200"
 
+  # PVE Exporter: Proxmox-specific metrics (VM/CT status, storage, etc.)
+  pve-exporter:
+    image: docker.io/prompve/prometheus-pve-exporter:latest
+    container_name: pve-exporter
+    restart: unless-stopped
+    env_file:
+      - env/pve.env
+
   # Grafana: dashboards and visualization
   grafana:
     image: docker.io/grafana/grafana:12.2.0

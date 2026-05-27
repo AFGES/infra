@@ -24,24 +24,31 @@ scrape_configs:
       - targets: ["alertmanager:9093"]
 
   # PVE nodes — using Prometheus Node Exporter (port 9100)
-  # Replace with your actual PVE node IPs
   - job_name: "pve-nodes"
     static_configs:
       - targets:
-          - "192.168.1.10:9100"  # pve-node-1
-          # - "192.168.1.11:9100"  # pve-node-2
+          - "192.168.1.102:9100"  # pve-node-1
+          - "192.168.1.104:9100"  # pve-node-2
+          - "192.168.1.106:9100"  # pve-node-3
         labels:
           environment: "pve"
 
-  # PVE metrics via pve_exporter (port 9221) — optional
-  # - job_name: "pve-exporter"
-  #   static_configs:
-  #     - targets:
-  #         - "192.168.1.10:9221"
-  #   params:
-  #     module: [default]
-  #   relabel_configs:
-  #     - source_labels: [__address__]
-  #       target_label: __param_target
-  #     - target_label: instance
-  #       replacement: pve
+  # PVE metrics via pve-exporter (port 9221) — multi-target pattern
+  - job_name: "pve-exporter"
+    static_configs:
+      - targets:
+          - "192.168.1.102"  # pve-node-1
+          - "192.168.1.104"  # pve-node-2
+          - "192.168.1.106"  # pve-node-3
+        labels:
+          environment: "pve"
+    metrics_path: /pve
+    params:
+      module: [default]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: pve-exporter:9221
