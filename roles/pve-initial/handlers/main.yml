@@ -1,3 +1,7 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # handlers file for roles/pve-initial
+- name: Reinstall proxmox-widget-toolkit
+  ansible.builtin.command: apt --reinstall install proxmox-widget-toolkit
+
+

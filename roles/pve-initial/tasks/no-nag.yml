@@ -1,0 +1,24 @@
+---
+
+- name: Copy remove nag script to /usr/local/bin
+  ansible.builtin.copy:
+    src: pve-remove-nag.sh
+    dest: /usr/local/bin/pve-remove-nag.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Execute remove nag script after all updates
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99-no-pve-nag
+    content: 'DPkg::Post-Invoke {"/usr/local/bin/pve-remove-nag.sh";};'
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure nag removal script is executed now
+  ansible.builtin.command: /usr/local/bin/pve-remove-nag.sh
+  register: nag_removal
+  changed_when: nag_removal.stdout != ""
+  notify:
+    - Reinstall proxmox-widget-toolkit
