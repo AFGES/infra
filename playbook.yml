@@ -1,0 +1,7 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: PVE Initial Setup
+  hosts: proxmox_nodes
+  become: yes
+  roles:
+      - role: pve-initial
