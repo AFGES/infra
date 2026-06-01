@@ -40,6 +40,14 @@ module "flatcar_nodes" {
       internet_access = true
     }
 
+    monitoring = {
+      id = 2
+      persistent_disk = {
+        size = 100
+      }
+      internet_access = true
+    }
+
     # Example: Add more nodes by uncommenting and configuring below
     # node2 = {
     #   id = 2  # VM ID: 2002, Disk Container: 9002
