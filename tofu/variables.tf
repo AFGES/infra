@@ -4,12 +4,6 @@ variable "proxmox_endpoint" {
   default     = "https://pve.afges.eu"
 }
 
-variable "proxmox_api_token" {
-  description = "Proxmox VE API token"
-  type        = string
-  sensitive   = true
-}
-
 variable "ssh_authorized_keys" {
   description = "SSH public key for the CoreOS default user"
   type        = list(string)
