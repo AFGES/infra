@@ -1,0 +1,6 @@
+[tools]
+age = "latest"
+sops = "latest"
+
+[env]
+SOPS_AGE_KEY_FILE = "../../sops_age_key.txt"
