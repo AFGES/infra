@@ -1,0 +1,9 @@
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
+*~
+
+# Local mise overrides
+.mise.local.toml
+.tool-versions
