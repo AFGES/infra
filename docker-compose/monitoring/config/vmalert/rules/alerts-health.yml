@@ -1,0 +1,39 @@
+# VMAlert alerting rules for VictoriaMetrics health
+# Sourced from upstream: https://github.com/VictoriaMetrics/VictoriaMetrics/blob/master/deployment/docker/rules/alerts-health.yml
+groups:
+  - name: vm-health
+    interval: 30s
+    rules:
+      - alert: TooManyRestarts
+        expr: changes(process_start_time_seconds{job=~".*(victoriametrics|vmagent|vmalert|alertmanager)"}[15m]) > 2
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} in {{ $labels.instance }} restarted more than twice in 15 minutes"
+          description: "Job {{ $labels.job }} on {{ $labels.instance }} restarted {{ $value }} times in the last 15 minutes. This may indicate a crash loop."
+
+      - alert: ServiceDown
+        expr: up{job=~".*(victoriametrics|vmagent|vmalert|alertmanager)"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down on {{ $labels.instance }}"
+          description: "{{ $labels.job }} at {{ $labels.instance }} has been down for more than 2 minutes."
+
+      - alert: ProcessNearFDLimits
+        expr: (process_max_fds - process_open_fds) < 100
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.instance }} is running close to file descriptor limit"
+          description: "{{ $labels.job }} at {{ $labels.instance }} has {{ $value }} file descriptors remaining."
+
+      - alert: TooHighMemoryUsage
+        expr: (process_resident_memory_bytes / vm_available_memory_bytes) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} on {{ $labels.instance }} is using >90% of available memory"
+          description: "{{ $labels.job }} at {{ $labels.instance }} memory usage is at {{ $value | humanizePercentage }}."
