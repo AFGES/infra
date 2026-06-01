@@ -1,9 +1,0 @@
-# SOPS configuration file
-# This file tells SOPS which encryption keys to use for different files
-
-creation_rules:
-    # Default rule for all files
-    - path_regex: \.yaml$
-      key_groups:
-          - age:
-                - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu

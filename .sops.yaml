@@ -1,12 +1,6 @@
 creation_rules:
-  - path_regex: docker-compose/monitoring/env/\w+\.env$
-    encrypted_regex: "^(.+_PASSWORD|.+_SECRET|PVE_TOKEN_VALUE)$"
-    key_groups:
-      - age:
-          - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu
-
-  - path_regex: docker-compose/reverse-proxy/env/\w+\.env$
-    encrypted_regex: "^(SERVER_SECRET|CLOUDFLARE_\\w+|POSTGRES_PASSWORD|CROWDSEC_\\w+)$"
+  - path_regex: docker-compose/\w+/env/\w+\.env$
+    encrypted_regex: "^.*(PASSWORD|SECRET|TOKEN|KEY).*$"
     key_groups:
       - age:
           - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu
