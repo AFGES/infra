@@ -1,6 +1,6 @@
 creation_rules:
   - path_regex: docker-compose/\w+/env/\w+\.env$
-    encrypted_regex: "^.*(PASSWORD|SECRET|TOKEN|KEY).*$"
+    encrypted_regex: "^(.*(?:PASSWORD|SECRET|TOKEN|KEY).*)$"
     key_groups:
       - age:
           - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu
