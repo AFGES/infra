@@ -1,0 +1,2 @@
+name: monitoring
+working_dir: docker-compose/monitoring
