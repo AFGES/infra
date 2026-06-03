@@ -81,6 +81,7 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   memory {
     dedicated = 1024 * var.memory
+    floating  = 1024 * var.memory # set equal to dedicated to enable ballooning
   }
 
   dynamic "network_device" {
