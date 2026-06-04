@@ -93,7 +93,7 @@ services:
 
   # GED Unistra: document management app, exposed via Pangolin
   ged-unistra:
-    image: ghcr.io/afges/ged-unistra:0.1
+    image: ghcr.io/afges/ged-unistra:0.2
     container_name: ged-unistra
     restart: unless-stopped
     labels:
@@ -105,8 +105,14 @@ services:
       - "pangolin.public-resources.ged-unistra.targets[0].port=80"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.hostname=ged-unistra"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.port=80"
-      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.path=/"
+      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.path=/health"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.status=200"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
   socket-proxy:
