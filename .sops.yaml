@@ -1,5 +1,5 @@
 creation_rules:
-  - path_regex: docker-compose/\w+/env/\w+\.env$
+  - path_regex: docker-compose/[\w-]+/env/\w+\.env$
     encrypted_regex: "^(.*(?:PASSWORD|SECRET|TOKEN|KEY).*)$"
     key_groups:
       - age:
