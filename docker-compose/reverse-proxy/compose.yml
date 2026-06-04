@@ -91,6 +91,51 @@ services:
     ports:
       - 8080:8080 # Local API port for bouncer communication
 
+  # GED Unistra: document management app, exposed via Pangolin
+  ged-unistra:
+    image: ghcr.io/afges/ged-unistra:0.1
+    container_name: ged-unistra
+    restart: unless-stopped
+    labels:
+      - "pangolin.public-resources.ged-unistra.name=GED Unistra"
+      - "pangolin.public-resources.ged-unistra.protocol=http"
+      - "pangolin.public-resources.ged-unistra.full-domain=ged-unistra.afges.eu"
+      - "pangolin.public-resources.ged-unistra.targets[0].method=http"
+      - "pangolin.public-resources.ged-unistra.targets[0].hostname=ged-unistra"
+      - "pangolin.public-resources.ged-unistra.targets[0].port=80"
+      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.hostname=ged-unistra"
+      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.port=80"
+      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.path=/"
+      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.status=200"
+
+  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
+  socket-proxy:
+    image: docker.io/tecnativa/docker-socket-proxy:latest
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+
+  # Newt: Pangolin tunnel client – registers labeled services as resources
+  newt:
+    image: docker.io/fosrl/newt:latest
+    container_name: newt
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    env_file:
+      - env/newt.env
+    environment:
+      DOCKER_SOCKET: tcp://socket-proxy:2375
+    networks:
+      - default
+      - socket-proxy
+
 volumes:
   traefik_letsencrypt:
   traefik_logs:
@@ -101,3 +146,7 @@ networks:
   default:
     driver: bridge
     name: pangolin
+  socket-proxy:
+    driver: bridge
+    name: pangolin-socket-proxy
+    internal: true
