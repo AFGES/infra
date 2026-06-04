@@ -1,7 +1,7 @@
 name: pangolin
 services:
   pangolin:
-    image: docker.io/fosrl/pangolin:ee-postgresql-1.16
+    image: docker.io/fosrl/pangolin:ee-postgresql-1.16@sha256:2f5b971b2371d3403f0a8e7cd8728af19b8a994f02a333ad434887b5d21e0b85
     container_name: pangolin
     restart: unless-stopped
     depends_on:
@@ -26,7 +26,7 @@ services:
       retries: 15
 
   gerbil:
-    image: docker.io/fosrl/gerbil:1.3.0
+    image: docker.io/fosrl/gerbil:1.4.0@sha256:887355e66deac61df9583d9df23e630897f785a8e20bc66081c66e40687cc713
     container_name: gerbil
     restart: unless-stopped
     depends_on:
@@ -48,7 +48,7 @@ services:
       - 80:80
 
   traefik:
-    image: docker.io/traefik:v3.6
+    image: docker.io/traefik:v3.7@sha256:6b9cbca6fac42ab0075f5437d8dc1685cfd188626d8d515839ea94f8b6271c42
     container_name: traefik
     restart: unless-stopped
     network_mode: service:gerbil # Ports appear on the gerbil service
@@ -65,7 +65,7 @@ services:
       - traefik_logs:/var/log/traefik:z # Volume to store Traefik logs
 
   postgres:
-    image: docker.io/library/postgres:18
+    image: docker.io/library/postgres:18@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
     container_name: postgres
     restart: unless-stopped
     env_file:
@@ -79,7 +79,7 @@ services:
       retries: 5
 
   crowdsec:
-    image: docker.io/crowdsecurity/crowdsec:latest
+    image: docker.io/crowdsecurity/crowdsec:latest@sha256:2f527c9bb8b367120eb08b82890aa912ce96bfa1ada93dda0721700e4b4e0dde
     container_name: crowdsec
     restart: unless-stopped
     environment:
@@ -93,7 +93,7 @@ services:
 
   # GED Unistra: document management app, exposed via Pangolin
   ged-unistra:
-    image: ghcr.io/afges/ged-unistra:0.2
+    image: ghcr.io/afges/ged-unistra:0.2@sha256:11efc783ebf3c22f39c1a15813fdd06df5614adddd3ec9ecdd32b990cf03b29d
     container_name: ged-unistra
     restart: unless-stopped
     labels:
@@ -116,7 +116,7 @@ services:
 
   # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
   socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest
+    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
     container_name: socket-proxy
     restart: unless-stopped
     environment:
@@ -129,7 +129,7 @@ services:
 
   # Newt: Pangolin tunnel client – registers labeled services as resources
   newt:
-    image: docker.io/fosrl/newt:latest
+    image: docker.io/fosrl/newt:latest@sha256:3c009663332145cae39b940b07857469038d5e9d71aacb1497e78795ba4e3b9b
     container_name: newt
     restart: unless-stopped
     depends_on:
