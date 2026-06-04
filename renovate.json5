@@ -1,0 +1,59 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: [
+    "config:recommended",
+    ":semanticCommits", // repo uses conventional commits (feat/fix(scope))
+    ":dependencyDashboard",
+  ],
+  timezone: "Europe/Paris",
+  // Conservative cadence — batch PRs weekly, not on every upstream push
+  schedule: ["before 6am on monday"],
+  prHourlyLimit: 0,
+  prConcurrentLimit: 10,
+
+  // Pin floating tags (latest) AND already-pinned semver tags to digests
+  pinDigests: true,
+
+  // No automerge anywhere (explicit; config:recommended default is off)
+  automerge: false,
+
+  lockFileMaintenance: { enabled: true, schedule: ["before 6am on monday"] },
+
+  packageRules: [
+    // Group each compose stack so a stack updates as one PR
+    {
+      matchFileNames: ["docker-compose/monitoring/**"],
+      groupName: "monitoring stack",
+      semanticCommitScope: "monitoring",
+    },
+    {
+      matchFileNames: ["docker-compose/reverse-proxy/**"],
+      groupName: "reverse-proxy stack",
+      semanticCommitScope: "reverse-proxy",
+    },
+    // Tofu providers together
+    {
+      matchManagers: ["terraform"],
+      groupName: "tofu providers",
+      semanticCommitScope: "tofu",
+    },
+    // Ansible python + galaxy together
+    {
+      matchFileNames: ["ansible/**"],
+      groupName: "ansible deps",
+      semanticCommitScope: "ansible",
+    },
+    // mise dev tools together
+    {
+      matchManagers: ["mise"],
+      groupName: "mise tools",
+      semanticCommitScope: "mise",
+    },
+    // Keep major bumps OUT of the group PRs — review them in isolation
+    {
+      matchUpdateTypes: ["major"],
+      groupName: null,
+      addLabels: ["major-update"],
+    },
+  ],
+}
