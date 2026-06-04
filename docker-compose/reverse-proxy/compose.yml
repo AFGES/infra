@@ -59,6 +59,18 @@ services:
       - --configFile=/etc/traefik/traefik_config.yml
     env_file:
       - env/traefik.env
+    labels:
+      - "pangolin.public-resources.traefik.name=Traefik"
+      - "pangolin.public-resources.traefik.protocol=http"
+      - "pangolin.public-resources.traefik.full-domain=traefik.afges.eu"
+      - "pangolin.public-resources.traefik.auth.sso-enabled=true"
+      - "pangolin.public-resources.traefik.targets[0].method=http"
+      - "pangolin.public-resources.traefik.targets[0].hostname=gerbil"
+      - "pangolin.public-resources.traefik.targets[0].port=8080"
+      - "pangolin.public-resources.traefik.targets[0].healthcheck.hostname=gerbil"
+      - "pangolin.public-resources.traefik.targets[0].healthcheck.port=8080"
+      - "pangolin.public-resources.traefik.targets[0].healthcheck.path=/api/overview"
+      - "pangolin.public-resources.traefik.targets[0].healthcheck.status=200"
     volumes:
       - ./config/traefik:/etc/traefik:z,ro # Volume to store the Traefik configuration
       - traefik_letsencrypt:/letsencrypt:Z # Volume to store the Let's Encrypt certificates
