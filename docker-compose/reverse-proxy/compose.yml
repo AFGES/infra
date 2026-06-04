@@ -108,7 +108,7 @@ services:
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.path=/health"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.status=200"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3
