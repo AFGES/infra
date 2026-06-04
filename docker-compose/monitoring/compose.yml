@@ -97,7 +97,7 @@ services:
 
   # Grafana: dashboards and visualization
   grafana:
-    image: docker.io/grafana/grafana:12.4.4@sha256:378f94b054e5384cd74322cbf7542cff6a43e068e4011f81ea5e75323247df02
+    image: docker.io/grafana/grafana:13.0.2@sha256:5dad0df181cb644a14e13617b913b261a54f7d4fd4510721dba420929f35bea2
     container_name: grafana
     restart: unless-stopped
     depends_on:
