@@ -1,10 +1,11 @@
 [project]
-name = "ansible"
+name = "infra-ansible"
 version = "0.1.0"
-description = "Add your description here"
+description = "Some dependencies for the infra-ansible project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "ansible>=14.0.0",
     "github3-py>=4.0.1",
     "requests>=2.34.2",
 ]
