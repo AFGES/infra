@@ -1,5 +1,5 @@
 # You can pick any Debian/Ubuntu-based image. 😊
-FROM mcr.microsoft.com/vscode/devcontainers/base:trixie
+FROM mcr.microsoft.com/vscode/devcontainers/base:trixie@sha256:b8c3669fb4cc652621b3386517c40ab3e151e827de958d6fe75528798ffb5727
 
 # Add OpenTofu repo
 RUN install -m 0755 -d /etc/apt/keyrings \
