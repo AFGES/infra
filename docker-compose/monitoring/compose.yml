@@ -3,7 +3,7 @@ name: monitoring
 services:
   # VictoriaMetrics single-node: stores metrics
   victoriametrics:
-    image: docker.io/victoriametrics/victoria-metrics:v1.144.0@sha256:dc030542eb0cd262287c9ec32e5867f8dcccc0efd5906c10f7fc8176c53d34d7
+    image: docker.io/victoriametrics/victoria-metrics:v1.151.0@sha256:6d164540a04f49ba4e696cbdb70f9fee78be1e94b8f2a1292743a0b1ab8275bd
     container_name: victoriametrics
     restart: unless-stopped
     volumes:
@@ -32,7 +32,7 @@ services:
 
   # VMAgent: lightweight scraping agent
   vmagent:
-    image: docker.io/victoriametrics/vmagent:v1.144.0@sha256:f685e6900aea67d079b136eda07dc53ca8a1099710aef889ab17b8da814496ef
+    image: docker.io/victoriametrics/vmagent:v1.151.0@sha256:ff6168d22b523d0bc3db1a0fedd0dafd37a77dba75489120464c39fadbfa1ff7
     container_name: vmagent
     restart: unless-stopped
     depends_on:
@@ -47,7 +47,7 @@ services:
 
   # VMAlert: evaluates alerting & recording rules
   vmalert:
-    image: docker.io/victoriametrics/vmalert:v1.144.0@sha256:1bfc008961c8f7e8a532104972410dbe098f2a2b044056299e2b275faf975287
+    image: docker.io/victoriametrics/vmalert:v1.151.0@sha256:e519f14c31f4d68015702e684a0fc3f1b4e559aa985d8f4462768f07f55b05c9
     container_name: vmalert
     restart: unless-stopped
     depends_on:
@@ -66,7 +66,7 @@ services:
 
   # Alertmanager: receives notifications from vmalert
   alertmanager:
-    image: docker.io/prom/alertmanager:v0.32.1@sha256:51a825c2a40acc3e338fdd00d622e01ec090f72be2b3ea46be0839cd47a4d286
+    image: docker.io/prom/alertmanager:v0.34.0@sha256:690c7b525f4367aa91f73e2f91c632206d32e97c6384bdbf2fb7a861b420340d
     container_name: alertmanager
     restart: unless-stopped
     volumes:
@@ -89,7 +89,7 @@ services:
 
   # PVE Exporter: Proxmox-specific metrics (VM/CT status, storage, etc.)
   pve-exporter:
-    image: docker.io/prompve/prometheus-pve-exporter:latest@sha256:78a58df7a31c9fbee94962cd06422672668529de6421892df9aed4b6cee0757f
+    image: docker.io/prompve/prometheus-pve-exporter:latest@sha256:4867684c0a937716f11f770a32d32958bded507cf570fc334f774392afcb2f37
     container_name: pve-exporter
     restart: unless-stopped
     env_file:
@@ -97,7 +97,7 @@ services:
 
   # Grafana: dashboards and visualization
   grafana:
-    image: docker.io/grafana/grafana:13.0.2@sha256:5dad0df181cb644a14e13617b913b261a54f7d4fd4510721dba420929f35bea2
+    image: docker.io/grafana/grafana:13.2.1@sha256:f772d434e8fab0049deb2b1b30abd43342bcfca1537614aa8d36080232cf4283
     container_name: grafana
     restart: unless-stopped
     depends_on:
@@ -123,7 +123,7 @@ services:
 
   # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
   socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
+    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
     container_name: socket-proxy
     restart: unless-stopped
     environment:
@@ -136,7 +136,7 @@ services:
 
   # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
   newt:
-    image: docker.io/fosrl/newt:latest@sha256:3c009663332145cae39b940b07857469038d5e9d71aacb1497e78795ba4e3b9b
+    image: docker.io/fosrl/newt:latest@sha256:345fdeb369be6608d82c41d70637636c78b2c04a6112ff6ec20fc21c48afc899
     container_name: newt
     restart: unless-stopped
     depends_on:
