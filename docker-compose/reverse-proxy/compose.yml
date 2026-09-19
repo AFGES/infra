@@ -26,7 +26,7 @@ services:
       retries: 15
 
   gerbil:
-    image: docker.io/fosrl/gerbil:1.4.0@sha256:887355e66deac61df9583d9df23e630897f785a8e20bc66081c66e40687cc713
+    image: docker.io/fosrl/gerbil:1.5.2@sha256:1f6e64eaba7997282c7067ba19922fc7e46b5f73e1a27add3dd66a591d50512f
     container_name: gerbil
     restart: unless-stopped
     depends_on:
@@ -48,7 +48,7 @@ services:
       - 80:80
 
   traefik:
-    image: docker.io/traefik:v3.7@sha256:6b9cbca6fac42ab0075f5437d8dc1685cfd188626d8d515839ea94f8b6271c42
+    image: docker.io/traefik:v3.7@sha256:1c32e7c368204fd72812152ebdd2ac0425993df6fd982317deb02e48f2d5423c
     container_name: traefik
     restart: unless-stopped
     network_mode: service:gerbil # Ports appear on the gerbil service
@@ -77,7 +77,7 @@ services:
       - traefik_logs:/var/log/traefik:z # Volume to store Traefik logs
 
   postgres:
-    image: docker.io/library/postgres:18@sha256:8ff36f3c66371cba71d20ceedccfc3de9669a68737607888c4ef0af93abe8e39
+    image: docker.io/library/postgres:18@sha256:86c951e05bf56c93d95d397747fb8820ac76cc3bedb78f43abd83eedbe3666ae
     container_name: postgres
     restart: unless-stopped
     env_file:
@@ -91,7 +91,7 @@ services:
       retries: 5
 
   crowdsec:
-    image: docker.io/crowdsecurity/crowdsec:latest@sha256:2f527c9bb8b367120eb08b82890aa912ce96bfa1ada93dda0721700e4b4e0dde
+    image: docker.io/crowdsecurity/crowdsec:latest@sha256:0f2523fa61ef507f15d953045cface490cc880670c62f2755ced17524107f71a
     container_name: crowdsec
     restart: unless-stopped
     environment:
@@ -128,7 +128,7 @@ services:
 
   # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
   socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f3a6f303320723d199d2316a3e82b2e2685d86c275d5e3deeaf182573b47476
+    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
     container_name: socket-proxy
     restart: unless-stopped
     environment:
@@ -141,7 +141,7 @@ services:
 
   # Newt: Pangolin tunnel client – registers labeled services as resources
   newt:
-    image: docker.io/fosrl/newt:latest@sha256:3c009663332145cae39b940b07857469038d5e9d71aacb1497e78795ba4e3b9b
+    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
     container_name: newt
     restart: unless-stopped
     depends_on:
