@@ -1,5 +1,9 @@
 terraform {
   required_providers {
+    ovh = {
+      source  = "ovh/ovh"
+      version = ">= 2.0"
+    }
     proxmox = {
       source  = "bpg/proxmox"
       version = ">= 0.98.0"
@@ -9,6 +13,12 @@ terraform {
       version = "~> 1.4"
     }
   }
+}
+
+provider "ovh" {
+  endpoint  = "ovh-eu"
+  client_id = data.sops_file.secrets.data["ovh.client_id"]
+  client_secret = data.sops_file.secrets.data["ovh.client_secret"]
 }
 
 provider "proxmox" {
