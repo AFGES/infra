@@ -139,7 +139,7 @@ resource "ovh_domain_zone_record" "txt_dkim_google" {
   zone      = "afges.org"
   subdomain = "google._domainkey"
   fieldtype = "TXT"
-  target    = "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArYZzUGpjFdwV2DlR8DsyDgQsM2C3DyNL9FY0ZMv69zqsCN8RApk321xRBBvILBG0BnVo9Oun0WLmkacPGowt6FUBkDGq2jf7Y0GsnYJNoZdbkZjjNidBx/48n9OXSrSFw+WHo1j4MjQBmTb5Cprbc2KMYOWNeMK5kS0BFOUxYHxDHCDXoixTKCnlUU2WLpXFdpip9GJ5NsKYiRTxBIWBUaUB77cfFyMnzVYjDLYYcqTgt8sutZihpH78ZGlExQXvLdE795T5GB8wlidMl7Q7tw+Kxd7fryjAQxXyYFFU900xm7iOY2vT1ceusmS0nT90aevk/RHK3kib9CwZ0yPzCQIDAQAB"
+  target    = "\"v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArYZzUGpjFdwV2DlR8DsyDgQsM2C3DyNL9FY0ZMv69zqsCN8RApk321xRBBvILBG0BnVo9Oun0WLmkacPGowt6FUBkDGq2jf7Y0GsnYJNoZdbkZjjNidBx/48n9OXSrSFw+WHo1j4MjQBmTb5Cprbc2KMYOWNeMK5kS0BFOUxYHxDHCDXoixTKCnlUU2WLpXFdpip9GJ5NsKYiRTxBIWBUaUB77cfFyMnzVYjDLYYcqTgt8sutZihpH78ZGlExQXvLdE795T5GB8wlidMl7Q7tw+Kxd7fryjAQxXyYFFU900xm7iOY2vT1ceusmS0nT90aevk/RHK3kib9CwZ0yPzCQIDAQAB\""
 }
 
 resource "ovh_domain_zone_record" "txt_spf" {
