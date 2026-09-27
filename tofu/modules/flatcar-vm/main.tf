@@ -68,7 +68,7 @@ resource "proxmox_virtual_environment_file" "flatcar_ignition" {
 }
 
 # Download Flatcar Linux image to Proxmox with hash verification
-resource "proxmox_virtual_environment_download_file" "flatcar_img" {
+resource "proxmox_download_file" "flatcar_img" {
   content_type       = "import"
   datastore_id       = "local"
   node_name          = var.default_node_name
@@ -134,7 +134,7 @@ module "vms" {
 
   disk = {
     size         = 20
-    file_id      = proxmox_virtual_environment_download_file.flatcar_img.id
+    file_id      = proxmox_download_file.flatcar_img.id
     datastore_id = "ceph"
   }
 
@@ -152,7 +152,7 @@ module "vms" {
 }
 
 # Configure HA resources for enabled nodes
-resource "proxmox_virtual_environment_haresource" "vms" {
+resource "proxmox_haresource" "vms" {
   for_each = local.ha_enabled_nodes
 
   resource_id  = "vm:${local.vm_ids[each.key]}"

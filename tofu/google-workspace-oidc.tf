@@ -1,7 +1,7 @@
 # Google Workspace OIDC Authentication Realm for Proxmox VE
 # Enables users to authenticate to Proxmox using their Google Workspace accounts
 
-resource "proxmox_virtual_environment_realm_openid" "google_workspace" {
+resource "proxmox_realm_openid" "google_workspace" {
   realm      = "google"
   issuer_url = data.sops_file.secrets.data["google_workspace_oidc.issuer_url"]
   client_id  = data.sops_file.secrets.data["google_workspace_oidc.client_id"]
