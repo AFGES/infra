@@ -19,6 +19,7 @@ resource "ovh_domain_zone_record" "aaaa_root" {
 # Verification TXT records
 # ---------------------------------------------------------------------------
 
+# Anthropic
 resource "ovh_domain_zone_record" "txt_anthropic_verification" {
   zone      = "afges.org"
   subdomain = ""
@@ -83,71 +84,36 @@ resource "ovh_domain_zone_record" "txt_asuid_www" {
 }
 
 # ---------------------------------------------------------------------------
-# Mail records (MX target = "<priority> <host>.")
+# Mail (Google Workspace)
 # ---------------------------------------------------------------------------
 
-resource "ovh_domain_zone_record" "mx_1" {
-  zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "MX"
-  target    = "10 aspmx3.googlemail.com."
+module "mail_afges_org" {
+  source = "./modules/google-mail"
+
+  zone         = "afges.org"
+  spf_includes = ["spf.mailjet.com", "_spf.google.com", "mailway.app"]
+  dkim_google  = "v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArYZzUGpjFdwV2DlR8DsyDgQsM2C3DyNL9FY0ZMv69zqsCN8RApk321xRBBvILBG0BnVo9Oun0WLmkacPGowt6FUBkDGq2jf7Y0GsnYJNoZdbkZjjNidBx/48n9OXSrSFw+WHo1j4MjQBmTb5Cprbc2KMYOWNeMK5kS0BFOUxYHxDHCDXoixTKCnlUU2WLpXFdpip9GJ5NsKYiRTxBIWBUaUB77cfFyMnzVYjDLYYcqTgt8sutZihpH78ZGlExQXvLdE795T5GB8wlidMl7Q7tw+Kxd7fryjAQxXyYFFU900xm7iOY2vT1ceusmS0nT90aevk/RHK3kib9CwZ0yPzCQIDAQAB"
+  dmarc        = "v=DMARC1; p=quarantine; rua=mailto:2b72d1dd6a5a423d9337802d1c63ad3b@dmarc-reports.cloudflare.net,mailto:dmarc@afges.org"
 }
 
-resource "ovh_domain_zone_record" "mx_2" {
+module "mail_anciens_afges_org" {
+  source = "./modules/google-mail"
+
   zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "MX"
-  target    = "10 aspmx2.googlemail.com."
+  subdomain = "anciens"
 }
 
-resource "ovh_domain_zone_record" "mx_3" {
+module "mail_numerique_afges_org" {
+  source = "./modules/google-mail"
+
   zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "MX"
-  target    = "5 alt2.aspmx.l.google.com."
+  subdomain = "numerique"
 }
 
-resource "ovh_domain_zone_record" "mx_4" {
-  zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "MX"
-  target    = "5 alt1.aspmx.l.google.com."
-}
 
-resource "ovh_domain_zone_record" "mx_5" {
-  zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "MX"
-  target    = "1 aspmx.l.google.com."
-}
-
-resource "ovh_domain_zone_record" "txt_bimi_default" {
-  zone      = "afges.org"
-  subdomain = "default._bimi"
-  fieldtype = "TXT"
-  target    = "v=BIMI1;l=https://afges.org/wp-content/uploads/2023/11/afges.svg"
-}
-
-resource "ovh_domain_zone_record" "txt_dmarc" {
-  zone      = "afges.org"
-  subdomain = "_dmarc"
-  fieldtype = "TXT"
-  target    = "v=DMARC1; p=quarantine; rua=mailto:2b72d1dd6a5a423d9337802d1c63ad3b@dmarc-reports.cloudflare.net,mailto:dmarc@afges.org"
-}
-
-resource "ovh_domain_zone_record" "txt_dkim_google" {
-  zone      = "afges.org"
-  subdomain = "google._domainkey"
-  fieldtype = "TXT"
-  target    = "\"v=DKIM1; k=rsa; p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArYZzUGpjFdwV2DlR8DsyDgQsM2C3DyNL9FY0ZMv69zqsCN8RApk321xRBBvILBG0BnVo9Oun0WLmkacPGowt6FUBkDGq2jf7Y0GsnYJNoZdbkZjjNidBx/48n9OXSrSFw+WHo1j4MjQBmTb5Cprbc2KMYOWNeMK5kS0BFOUxYHxDHCDXoixTKCnlUU2WLpXFd\" \"pip9GJ5NsKYiRTxBIWBUaUB77cfFyMnzVYjDLYYcqTgt8sutZihpH78ZGlExQXvLdE795T5GB8wlidMl7Q7tw+Kxd7fryjAQxXyYFFU900xm7iOY2vT1ceusmS0nT90aevk/RHK3kib9CwZ0yPzCQIDAQAB\""
-}
-
-resource "ovh_domain_zone_record" "txt_spf" {
-  zone      = "afges.org"
-  subdomain = ""
-  fieldtype = "TXT"
-  target    = "v=spf1 include:spf.mailjet.com include:_spf.google.com include:mailway.app ~all"
-}
+# ---------------------------------------------------------------------------
+# Mailjet
+# ---------------------------------------------------------------------------
 
 resource "ovh_domain_zone_record" "txt_dkim_mailjet" {
   zone      = "afges.org"
@@ -268,50 +234,4 @@ resource "ovh_domain_zone_record" "cname_enterpriseregistration" {
   subdomain = "enterpriseregistration"
   fieldtype = "CNAME"
   target    = "enterpriseregistration.windows.net."
-}
-
-# ---------------------------------------------------------------------------
-# "anciens" subdomain: MX + SPF
-# ---------------------------------------------------------------------------
-
-resource "ovh_domain_zone_record" "mx_anciens_1" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "MX"
-  target    = "10 aspmx3.googlemail.com."
-}
-
-resource "ovh_domain_zone_record" "mx_anciens_2" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "MX"
-  target    = "10 aspmx2.googlemail.com."
-}
-
-resource "ovh_domain_zone_record" "mx_anciens_3" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "MX"
-  target    = "5 alt2.aspmx.l.google.com."
-}
-
-resource "ovh_domain_zone_record" "mx_anciens_4" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "MX"
-  target    = "5 alt1.aspmx.l.google.com."
-}
-
-resource "ovh_domain_zone_record" "mx_anciens_5" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "MX"
-  target    = "1 aspmx.l.google.com."
-}
-
-resource "ovh_domain_zone_record" "txt_anciens_spf" {
-  zone      = "afges.org"
-  subdomain = "anciens"
-  fieldtype = "TXT"
-  target    = "v=spf1 include:_spf.google.com ~all"
 }
