@@ -49,7 +49,7 @@ services:
       - 80:80
 
   traefik:
-    image: docker.io/traefik:v3.7@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+    image: docker.io/traefik:v3.7@sha256:575fa15b135078fe5e50aa847987d96dbddd7b093c172429618404df73f3fa7c
     container_name: traefik
     restart: unless-stopped
     network_mode: service:gerbil # Ports appear on the gerbil service
@@ -78,7 +78,7 @@ services:
       - traefik_logs:/var/log/traefik:z # Volume to store Traefik logs
 
   postgres:
-    image: docker.io/library/postgres:18@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
+    image: docker.io/library/postgres:18@sha256:74935e72241653ca55e0414067e6d8763aceb8a810eb51b452253ec3dcfc4336
     container_name: postgres
     restart: unless-stopped
     env_file:
@@ -142,7 +142,7 @@ services:
 
   # Newt: Pangolin tunnel client – registers labeled services as resources
   newt:
-    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
+    image: docker.io/fosrl/newt:latest@sha256:7fed6605e0a104a337e1cb903bbb1225f80c7f6e5e56ff1eb1d70c57740d8e0f
     container_name: newt
     restart: unless-stopped
     depends_on:
