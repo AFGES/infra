@@ -30,8 +30,6 @@ module "flatcar_nodes" {
   default_ha_enabled         = true
 
   nodes = {
-    # First node with persistent disk
-    # VM ID: 2001, Disk Container: 9001
     reverse-proxy = {
       id = 1
       persistent_disk = {
@@ -47,21 +45,5 @@ module "flatcar_nodes" {
       }
       internet_access = true
     }
-
-    # Example: Add more nodes by uncommenting and configuring below
-    # node2 = {
-    #   id = 2  # VM ID: 2002, Disk Container: 9002
-    #   cpu_cores = 4
-    #   memory = 4
-    #   persistent_disk = {
-    #     size = 50
-    #   }
-    # }
-    #
-    # worker = {
-    #   id = 3  # VM ID: 2003, no persistent disk
-    #   cpu_cores = 2
-    #   # No persistent_disk = ephemeral node
-    # }
   }
 }
