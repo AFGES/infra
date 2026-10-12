@@ -62,6 +62,25 @@ http:
       tls:
         certResolver: letsencrypt
 
+    # Integration API HTTP to HTTPS redirect router
+    int-api-router-redirect:
+      rule: "Host(`api.pangolin.afges.eu`)"
+      service: int-api-service
+      entryPoints:
+        - web
+      middlewares:
+        - redirect-to-https
+        - badger
+
+    # Integration API router
+    int-api-router:
+      rule: "Host(`api.pangolin.afges.eu`)"
+      service: int-api-service
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+
   services:
     next-service:
       loadBalancer:
@@ -72,6 +91,11 @@ http:
       loadBalancer:
         servers:
           - url: "http://pangolin:3000"  # API/WebSocket server
+
+    int-api-service:
+      loadBalancer:
+        servers:
+          - url: "http://pangolin:3003" # API integration server
 
 tcp:
   serversTransports:
