@@ -2,6 +2,6 @@
 ---
 - name: PVE Initial Setup
   hosts: proxmox_nodes
-  become: yes
+  become: true
   roles:
       - role: pve-initial
