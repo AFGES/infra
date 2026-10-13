@@ -30,7 +30,7 @@ certificatesResolvers:
   letsencrypt:
     acme:
       dnsChallenge:
-        provider: cloudflare
+        provider: ovh
       email: "numerique@afges.org"
       storage: "/letsencrypt/acme.json"
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
