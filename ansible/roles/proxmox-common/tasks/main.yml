@@ -1,3 +1,6 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for proxmox-common
+
+- name: Include IPMI exporter tasks
+  ansible.builtin.include_tasks: ipmi.yml

@@ -1,0 +1,34 @@
+---
+
+- name: Remove legacy pve nag apt hook
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/99-no-pve-nag
+    state: absent
+
+- name: Remove legacy pve nag script
+  ansible.builtin.file:
+    path: /usr/local/bin/pve-remove-nag.sh
+    state: absent
+
+- name: Copy remove nag script to /usr/local/bin
+  ansible.builtin.copy:
+    src: proxmox-remove-nag.sh
+    dest: /usr/local/bin/proxmox-remove-nag.sh
+    mode: '0755'
+    owner: root
+    group: root
+
+- name: Execute remove nag script after all updates
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99-no-proxmox-nag
+    content: 'DPkg::Post-Invoke {"/usr/local/bin/proxmox-remove-nag.sh";};'
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ensure nag removal script is executed now
+  ansible.builtin.command: /usr/local/bin/proxmox-remove-nag.sh
+  register: nag_removal
+  changed_when: nag_removal.stdout != ""
+  notify:
+    - Reinstall proxmox-widget-toolkit
