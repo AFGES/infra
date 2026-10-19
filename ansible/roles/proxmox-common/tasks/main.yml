@@ -2,5 +2,8 @@
 ---
 # tasks file for proxmox-common
 
+- name: Include auto update tasks
+  ansible.builtin.include_tasks: auto-update.yml
+
 - name: Include IPMI exporter tasks
   ansible.builtin.include_tasks: ipmi.yml

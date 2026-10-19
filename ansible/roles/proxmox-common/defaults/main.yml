@@ -1,3 +1,4 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # defaults file for proxmox-common
+proxmox_common_unattended_mail: ""
