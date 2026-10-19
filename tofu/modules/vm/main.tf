@@ -3,7 +3,7 @@ resource "terraform_data" "triggers" {
 }
 
 resource "proxmox_virtual_environment_vm" "this" {
-  node_name = "squirtle"
+  node_name = var.node_name
   vm_id     = var.id
 
   name        = "${var.name}.afges.eu"

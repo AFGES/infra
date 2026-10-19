@@ -38,6 +38,7 @@ module "flatcar_nodes" {
         size = 20
       }
       internet_access = true
+      pangolin_site   = true
     }
 
     monitoring = {
@@ -46,6 +47,7 @@ module "flatcar_nodes" {
         size = 100
       }
       internet_access = true
+      pangolin_site   = true
     }
 
     auth = {

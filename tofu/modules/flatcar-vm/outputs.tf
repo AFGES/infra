@@ -30,6 +30,17 @@ output "flatcar_version" {
 }
 
 output "ignition_file_id" {
-  description = "Proxmox file ID of the uploaded Ignition configuration"
-  value       = proxmox_virtual_environment_file.flatcar_ignition.id
+  description = "Map of node names to the Proxmox file ID of their uploaded Ignition configuration"
+  value       = { for k, f in proxmox_virtual_environment_file.flatcar_ignition : k => f.id }
+}
+
+output "pangolin_sites" {
+  description = "Pangolin sites created for opted-in nodes (without secrets)"
+  value = {
+    for k, s in pangolin_site.nodes : k => {
+      id      = s.id
+      nice_id = s.nice_id
+      newt_id = s.newt_id
+    }
+  }
 }

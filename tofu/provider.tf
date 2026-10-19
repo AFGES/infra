@@ -4,6 +4,10 @@ terraform {
       source  = "ovh/ovh"
       version = ">= 2.0"
     }
+    pangolin = {
+      source  = "stackopshq/pangolin"
+      version = "~> 1.5"
+    }
     proxmox = {
       source  = "bpg/proxmox"
       version = ">= 0.98.0"
@@ -31,6 +35,12 @@ provider "unifi" {
 
   # The gateway serves a self-signed certificate
   allow_insecure = true
+}
+
+provider "pangolin" {
+  url     = "https://api.pangolin.afges.eu"
+  api_key = data.sops_file.secrets.data["pangolin_api_key"]
+  org_id  = "afges"
 }
 
 provider "proxmox" {

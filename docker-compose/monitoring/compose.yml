@@ -144,9 +144,10 @@ services:
     restart: unless-stopped
     depends_on:
       - socket-proxy
-    env_file:
-      - env/newt.env
     environment:
+      PANGOLIN_ENDPOINT: https://pangolin.afges.eu
+      NEWT_ID: ${NEWT_ID:?NEWT_ID missing in doco-cd env}
+      NEWT_SECRET: ${NEWT_SECRET:?NEWT_SECRET missing in doco-cd env}
       DOCKER_SOCKET: tcp://socket-proxy:2375
     networks:
       - default

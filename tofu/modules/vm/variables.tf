@@ -4,6 +4,12 @@ variable "clone_vm_id" {
   default     = null
 }
 
+variable "node_name" {
+  description = "Proxmox node to create the VM on"
+  type        = string
+  default     = "squirtle"
+}
+
 variable "id" {
   description = "ID of the VM"
   type        = number

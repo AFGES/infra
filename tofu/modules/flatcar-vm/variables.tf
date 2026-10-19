@@ -23,6 +23,7 @@ variable "nodes" {
     ha_enabled         = optional(bool)
     internet_access    = optional(bool, false)
     kernel_modules     = optional(list(string), []) # Loaded at boot via /etc/modules-load.d
+    pangolin_site      = optional(bool, false) # Create a Pangolin site and pass its Newt credentials to doco-cd
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")

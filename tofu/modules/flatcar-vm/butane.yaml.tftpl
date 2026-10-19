@@ -7,6 +7,7 @@ passwd:
       ssh_authorized_keys: ${ssh_authorized_keys}
 
 storage:
+%{ if persistent_disk ~}
   disks:
     # Stable path: /dev/sdX order is not guaranteed and may land on the OS disk
     - device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
@@ -23,6 +24,7 @@ storage:
       wipe_filesystem: false
       with_mount_unit: true
       label: docker-data
+%{~ endif }
   files:
     - path: /etc/vconsole.conf
       mode: 0644
@@ -48,6 +50,13 @@ storage:
           ${module}
 %{ endfor ~}
 %{ endif ~}
+    - path: /etc/default/doco-cd
+      mode: 0600
+      contents:
+        inline: |
+          %{~ for k, v in doco_cd_env }
+          ${k}=${v}
+          %{~ endfor }
 
 systemd:
   units:
@@ -68,7 +77,8 @@ systemd:
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v doco-cd.volume:/data \
           -e POLL_CONFIG="- url: https://github.com/AFGES/infra.git\n  target: %l\n  reference: main" \
-          %{if sops_age_key != ""} -e SOPS_AGE_KEY=${sops_age_key} %{endif}\
+          -e PASS_ENV=true \
+          --env-file /etc/default/doco-cd \
           ghcr.io/kimdre/doco-cd:latest
 
         [Install]

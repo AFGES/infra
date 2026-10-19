@@ -5,17 +5,9 @@ locals {
   ha_nodes         = { for name in data.proxmox_virtual_environment_nodes.available.names : name => null }
   ha_enabled_nodes = { for k, v in var.nodes : k => v if coalesce(v.ha_enabled, var.default_ha_enabled) }
 
-  # Nodes needing a dedicated Ignition config; the others share flatcar-cluster.ign
-  custom_ignition_nodes = { for k, v in var.nodes : k => v if length(v.kernel_modules) > 0 }
-  node_ignition = {
-    for k, v in var.nodes : k => contains(keys(local.custom_ignition_nodes), k) ? {
-      file_id  = proxmox_virtual_environment_file.flatcar_ignition_custom[k].id
-      rendered = data.ct_config.flatcar_ignition_custom[k].rendered
-      } : {
-      file_id  = proxmox_virtual_environment_file.flatcar_ignition.id
-      rendered = data.ct_config.flatcar_ignition.rendered
-    }
-  }
+  # Effective Proxmox node per VM, and the set of nodes needing the Flatcar image
+  vm_node_names    = { for k, v in var.nodes : k => coalesce(v.node_name, var.default_node_name) }
+  image_node_names = toset(values(local.vm_node_names))
 
   # Compute effective network interfaces per node
   node_network_interfaces = {
@@ -43,6 +35,17 @@ locals {
     sha512 = [for s in local.all_hex_strings : s if length(s) == 128][0]
   }
 
+  # Environment passed to doco-cd per node (written to /etc/default/doco-cd)
+  doco_cd_env = {
+    for k, v in var.nodes : k => merge(
+      var.sops_age_key != "" ? { SOPS_AGE_KEY = var.sops_age_key } : {},
+      # Empty for nodes without a Pangolin site
+      try({
+        NEWT_ID     = pangolin_site.nodes[k].newt_id
+        NEWT_SECRET = pangolin_site.nodes[k].newt_secret
+      }, {}),
+    )
+  }
 }
 
 # Fetch the current Flatcar Linux stable version
@@ -58,58 +61,46 @@ data "http" "flatcar_digests" {
 # Auto-discover Proxmox cluster nodes for HA configuration
 data "proxmox_virtual_environment_nodes" "available" {}
 
-# Generate Ignition configuration from Butane template
-data "ct_config" "flatcar_ignition" {
-  content = templatefile("${path.module}/butane.yaml.tftpl", {
-    ssh_authorized_keys = jsonencode(var.ssh_authorized_keys)
-    sops_age_key        = var.sops_age_key
-    kernel_modules      = []
-  })
-  strict = true
+# Pangolin site (Newt tunnel) per opted-in node
+resource "pangolin_site" "nodes" {
+  for_each = { for k, v in var.nodes : k => v if v.pangolin_site }
+  name     = each.key
 }
 
-# Per-node Ignition configuration for nodes with specific settings
-data "ct_config" "flatcar_ignition_custom" {
-  for_each = local.custom_ignition_nodes
+# Generate Ignition configuration from Butane template (one per node)
+data "ct_config" "flatcar_ignition" {
+  for_each = var.nodes
 
   content = templatefile("${path.module}/butane.yaml.tftpl", {
     ssh_authorized_keys = jsonencode(var.ssh_authorized_keys)
-    sops_age_key        = var.sops_age_key
+    persistent_disk     = each.value.persistent_disk != null
+    doco_cd_env         = local.doco_cd_env[each.key]
     kernel_modules      = each.value.kernel_modules
   })
   strict = true
 }
 
-# Upload Ignition configuration to Proxmox
+# Upload Ignition configurations to Proxmox
 resource "proxmox_virtual_environment_file" "flatcar_ignition" {
-  content_type = "snippets"
-  datastore_id = "local"
-  node_name    = var.default_node_name
-
-  source_raw {
-    data      = data.ct_config.flatcar_ignition.rendered
-    file_name = "flatcar-cluster.ign"
-  }
-}
-
-resource "proxmox_virtual_environment_file" "flatcar_ignition_custom" {
-  for_each = local.custom_ignition_nodes
+  for_each = var.nodes
 
   content_type = "snippets"
   datastore_id = "local"
-  node_name    = var.default_node_name
+  node_name    = local.vm_node_names[each.key]
 
   source_raw {
-    data      = data.ct_config.flatcar_ignition_custom[each.key].rendered
+    data      = data.ct_config.flatcar_ignition[each.key].rendered
     file_name = "flatcar-${each.key}.ign"
   }
 }
 
-# Download Flatcar Linux image to Proxmox with hash verification
+# Download Flatcar Linux image with hash verification, on every node hosting a VM
 resource "proxmox_download_file" "flatcar_img" {
+  for_each = local.image_node_names
+
   content_type       = "import"
   datastore_id       = "local"
-  node_name          = var.default_node_name
+  node_name          = each.key
   url                = "https://stable.release.flatcar-linux.net/amd64-usr/${local.flatcar_metadata.version}/flatcar_production_proxmoxve_image.img"
   file_name          = "flatcar-production-proxmoxve.qcow2"
   overwrite          = false
@@ -118,12 +109,17 @@ resource "proxmox_download_file" "flatcar_img" {
   verify             = true
 }
 
+moved {
+  from = proxmox_download_file.flatcar_img
+  to   = proxmox_download_file.flatcar_img["squirtle"]
+}
+
 # Create persistent disk containers for nodes that need them
 module "persistent_disks" {
   source   = "../persistent-disk"
   for_each = local.nodes_with_disks
 
-  node_name = coalesce(each.value.node_name, var.default_node_name)
+  node_name = local.vm_node_names[each.key]
   vm_id     = local.disk_vm_ids[each.key]
   name      = "${each.key}-data"
 
@@ -143,12 +139,13 @@ module "vms" {
 
   id                 = local.vm_ids[each.key]
   name               = each.key # Map key becomes the VM name directly
+  node_name          = local.vm_node_names[each.key]
   machine_type       = coalesce(each.value.machine_type, var.default_machine_type)
   cpu_cores          = coalesce(each.value.cpu_cores, var.default_cpu_cores)
   memory             = coalesce(each.value.memory, var.default_memory)
   start_on_boot      = coalesce(each.value.start_on_boot, var.default_start_on_boot)
   start_on_provision = coalesce(each.value.start_on_provision, var.default_start_on_provision)
-  ignition_file_id   = local.node_ignition[each.key].file_id
+  ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition[each.key].id
 
   # Use computed network_interfaces based on internet_access flag
   network_interfaces = local.node_network_interfaces[each.key]
@@ -168,11 +165,11 @@ module "vms" {
   )
 
   # Rebuild VMs when Butane config changes
-  triggers_replace = sha256(local.node_ignition[each.key].rendered)
+  triggers_replace = nonsensitive(sha256(data.ct_config.flatcar_ignition[each.key].rendered))
 
   disk = {
     size         = 20
-    file_id      = proxmox_download_file.flatcar_img.id
+    file_id      = proxmox_download_file.flatcar_img[local.vm_node_names[each.key]].id
     datastore_id = "ceph"
   }
 

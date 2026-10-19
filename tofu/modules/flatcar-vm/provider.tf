@@ -12,5 +12,9 @@ terraform {
       source  = "poseidon/ct"
       version = ">= 0.13.0"
     }
+    pangolin = {
+      source  = "stackopshq/pangolin"
+      version = "~> 1.5"
+    }
   }
 }
