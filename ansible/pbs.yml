@@ -1,0 +1,7 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: PBS Initial Setup
+  hosts: pbs
+  become: true
+  roles:
+      - role: pbs-initial

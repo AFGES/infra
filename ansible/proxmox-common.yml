@@ -1,0 +1,7 @@
+#!/usr/bin/env ansible-playbook
+---
+- name: Proxmox Common Setup
+  hosts: proxmox
+  become: true
+  roles:
+      - role: proxmox-common

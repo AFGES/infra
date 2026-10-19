@@ -1,7 +1,10 @@
 #!/usr/bin/env ansible-playbook
 ---
-- name: PVE Initial Setup
-  hosts: proxmox_nodes
-  become: true
-  roles:
-      - role: pve-initial
+- name: Proxmox common setup
+  ansible.builtin.import_playbook: proxmox-common.yml
+
+- name: PVE setup
+  ansible.builtin.import_playbook: pve.yml
+
+- name: PBS setup
+  ansible.builtin.import_playbook: pbs.yml
