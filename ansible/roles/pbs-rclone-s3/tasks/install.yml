@@ -1,0 +1,33 @@
+---
+- name: Get installed rclone version
+  ansible.builtin.command: dpkg-query -W -f=${Version} rclone
+  register: rclone_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install pinned rclone release
+  when: rclone_installed.stdout != pbs_rclone_s3_version
+  block:
+      - name: Download rclone .deb
+        ansible.builtin.get_url:
+            url: "https://downloads.rclone.org/v{{ pbs_rclone_s3_version }}/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
+            dest: "/tmp/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
+            checksum: "sha256:{{ pbs_rclone_s3_deb_sha256 }}"
+            mode: "0644"
+
+      - name: Install rclone .deb
+        ansible.builtin.apt:
+            deb: "/tmp/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
+        notify: Reload systemd and restart rclone-s3
+        ignore_errors: "{{ ansible_check_mode }}"
+
+      - name: Remove rclone .deb
+        ansible.builtin.file:
+            path: "/tmp/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
+            state: absent
+
+- name: Install curl for bucket management
+  ansible.builtin.apt:
+      name: curl
+      state: present

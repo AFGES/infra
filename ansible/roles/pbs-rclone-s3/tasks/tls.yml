@@ -1,0 +1,54 @@
+---
+- name: Create rclone-s3 config directory
+  ansible.builtin.file:
+      path: "{{ pbs_rclone_s3_config_dir }}"
+      state: directory
+      owner: root
+      group: root
+      mode: "0700"
+
+- name: Generate self-signed TLS certificate for 127.0.0.1
+  ansible.builtin.command:
+      argv:
+          - openssl
+          - req
+          - -x509
+          - -newkey
+          - ec
+          - -pkeyopt
+          - ec_paramgen_curve:P-256
+          - -nodes
+          - -days
+          - "3650"
+          - -subj
+          - /CN=rclone-s3
+          - -addext
+          - subjectAltName=IP:127.0.0.1
+          - -keyout
+          - "{{ pbs_rclone_s3_config_dir }}/tls.key"
+          - -out
+          - "{{ pbs_rclone_s3_config_dir }}/tls.crt"
+      creates: "{{ pbs_rclone_s3_config_dir }}/tls.crt"
+  notify: Reload systemd and restart rclone-s3
+
+- name: Restrict TLS files permissions
+  ansible.builtin.file:
+      path: "{{ pbs_rclone_s3_config_dir }}/{{ item }}"
+      owner: root
+      group: root
+      mode: "0600"
+  loop:
+      - tls.key
+      - tls.crt
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Read TLS certificate fingerprint
+  ansible.builtin.command: openssl x509 -noout -fingerprint -sha256 -in {{ pbs_rclone_s3_config_dir }}/tls.crt
+  register: rclone_s3_fingerprint
+  changed_when: false
+  check_mode: false
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Store TLS certificate fingerprint
+  ansible.builtin.set_fact:
+      pbs_rclone_s3_fingerprint: "{{ rclone_s3_fingerprint.stdout | default('') | regex_replace('^.*=', '') | lower }}"

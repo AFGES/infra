@@ -1,0 +1,53 @@
+---
+# Credentials go through curl's config on stdin, never argv
+- name: Check S3 bucket exists
+  ansible.builtin.command:
+      argv:
+          - curl
+          - -sS
+          - -o
+          - /dev/null
+          - -w
+          - "%{http_code}"
+          - --cacert
+          - "{{ pbs_rclone_s3_config_dir }}/tls.crt"
+          - --aws-sigv4
+          - "aws:amz:{{ pbs_rclone_s3_region }}:s3"
+          - -K
+          - "-"
+          - -I
+          - "https://127.0.0.1:{{ pbs_rclone_s3_listen_port }}/{{ pbs_rclone_s3_bucket }}"
+      stdin: 'user = "{{ pbs_rclone_s3_secrets.s3_access_key }}:{{ pbs_rclone_s3_secrets.s3_secret_key }}"'
+  register: rclone_s3_bucket_head
+  changed_when: false
+  failed_when: rclone_s3_bucket_head.stdout not in ['200', '404']
+  # Service may still be starting after a restart
+  until: rclone_s3_bucket_head.stdout in ['200', '404']
+  retries: 10
+  delay: 3
+  no_log: true
+
+- name: Create S3 bucket
+  ansible.builtin.command:
+      argv:
+          - curl
+          - -sS
+          - -o
+          - /dev/null
+          - -w
+          - "%{http_code}"
+          - --cacert
+          - "{{ pbs_rclone_s3_config_dir }}/tls.crt"
+          - --aws-sigv4
+          - "aws:amz:{{ pbs_rclone_s3_region }}:s3"
+          - -K
+          - "-"
+          - -X
+          - PUT
+          - "https://127.0.0.1:{{ pbs_rclone_s3_listen_port }}/{{ pbs_rclone_s3_bucket }}"
+      stdin: 'user = "{{ pbs_rclone_s3_secrets.s3_access_key }}:{{ pbs_rclone_s3_secrets.s3_secret_key }}"'
+  register: rclone_s3_bucket_put
+  changed_when: true
+  failed_when: rclone_s3_bucket_put.stdout != '200'
+  when: rclone_s3_bucket_head.stdout == '404'
+  no_log: true

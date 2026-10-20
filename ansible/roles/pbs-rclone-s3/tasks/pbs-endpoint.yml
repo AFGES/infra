@@ -1,0 +1,85 @@
+---
+- name: List PBS S3 endpoints
+  ansible.builtin.command: proxmox-backup-manager s3 endpoint list --output-format json
+  register: pbs_s3_endpoints
+  changed_when: false
+
+- name: Find rclone-s3 endpoint
+  ansible.builtin.set_fact:
+      pbs_rclone_s3_endpoint: "{{ pbs_s3_endpoints.stdout | from_json | selectattr('id', 'equalto', pbs_rclone_s3_pbs_endpoint_id) | first | default({}) }}"
+
+# Secret is briefly visible in root's process list; host is root-only
+- name: Create PBS S3 endpoint
+  ansible.builtin.command:
+      argv:
+          - proxmox-backup-manager
+          - s3
+          - endpoint
+          - create
+          - "{{ pbs_rclone_s3_pbs_endpoint_id }}"
+          - --endpoint
+          - 127.0.0.1
+          - --port
+          - "{{ pbs_rclone_s3_listen_port }}"
+          - --path-style
+          - "true"
+          - --region
+          - "{{ pbs_rclone_s3_region }}"
+          - --fingerprint
+          - "{{ pbs_rclone_s3_fingerprint }}"
+          - --access-key
+          - "{{ pbs_rclone_s3_secrets.s3_access_key }}"
+          - --secret-key
+          - "{{ pbs_rclone_s3_secrets.s3_secret_key }}"
+  changed_when: true
+  when: pbs_rclone_s3_endpoint | length == 0
+  no_log: true
+
+- name: Update PBS S3 endpoint settings
+  ansible.builtin.command:
+      argv:
+          - proxmox-backup-manager
+          - s3
+          - endpoint
+          - update
+          - "{{ pbs_rclone_s3_pbs_endpoint_id }}"
+          - --endpoint
+          - 127.0.0.1
+          - --port
+          - "{{ pbs_rclone_s3_listen_port }}"
+          - --path-style
+          - "true"
+          - --region
+          - "{{ pbs_rclone_s3_region }}"
+          - --fingerprint
+          - "{{ pbs_rclone_s3_fingerprint }}"
+  changed_when: true
+  when:
+      - pbs_rclone_s3_endpoint | length > 0
+      - (pbs_rclone_s3_endpoint.endpoint | default('')) != '127.0.0.1'
+        or (pbs_rclone_s3_endpoint.port | default(0) | int) != (pbs_rclone_s3_listen_port | int)
+        or (pbs_rclone_s3_endpoint.region | default('')) != pbs_rclone_s3_region
+        or not (pbs_rclone_s3_endpoint['path-style'] | default(false) | bool)
+        or (pbs_rclone_s3_endpoint.fingerprint | default('') | lower) != pbs_rclone_s3_fingerprint
+
+- name: Rotate PBS S3 endpoint credentials
+  ansible.builtin.command:
+      argv:
+          - proxmox-backup-manager
+          - s3
+          - endpoint
+          - update
+          - "{{ pbs_rclone_s3_pbs_endpoint_id }}"
+          - --access-key
+          - "{{ pbs_rclone_s3_secrets.s3_access_key }}"
+          - --secret-key
+          - "{{ pbs_rclone_s3_secrets.s3_secret_key }}"
+  changed_when: true
+  when:
+      - pbs_rclone_s3_endpoint | length > 0
+      - pbs_rclone_s3_rotate_secret | bool
+  no_log: true
+
+- name: Check PBS can reach the bucket
+  ansible.builtin.command: proxmox-backup-manager s3 check {{ pbs_rclone_s3_pbs_endpoint_id }} {{ pbs_rclone_s3_bucket }}
+  changed_when: false

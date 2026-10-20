@@ -5,3 +5,4 @@
   become: true
   roles:
       - role: pbs-initial
+      - role: pbs-rclone-s3

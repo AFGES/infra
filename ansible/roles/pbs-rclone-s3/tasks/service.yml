@@ -1,0 +1,20 @@
+---
+- name: Deploy rclone-s3 systemd unit
+  ansible.builtin.template:
+      src: rclone-s3.service.j2
+      dest: /etc/systemd/system/rclone-s3.service
+      owner: root
+      group: root
+      mode: "0644"
+  notify: Reload systemd and restart rclone-s3
+
+- name: Enable and start rclone-s3
+  ansible.builtin.systemd:
+      name: rclone-s3
+      enabled: true
+      state: started
+      daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Apply pending rclone-s3 restart
+  ansible.builtin.meta: flush_handlers

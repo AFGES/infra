@@ -1,0 +1,88 @@
+# {{ ansible_managed }}
+[Unit]
+Description=rclone S3 gateway (crypt over Google Shared Drive) for Proxmox Backup Server
+Documentation=https://rclone.org/commands/rclone_serve_s3/
+Wants=network-online.target
+After=network-online.target
+# Ordering only: a broken gateway must not keep PBS from starting.
+# At shutdown PBS stops first, so in-flight uploads finish.
+Before=proxmox-backup-proxy.service
+
+[Service]
+Type=exec
+DynamicUser=yes
+CacheDirectory=rclone-s3
+CacheDirectoryMode=0700
+UMask=0077
+
+LoadCredential=rclone.conf:{{ pbs_rclone_s3_config_dir }}/rclone.conf
+LoadCredential=gdrive-sa.json:{{ pbs_rclone_s3_config_dir }}/gdrive-sa.json
+LoadCredential=auth-key:{{ pbs_rclone_s3_config_dir }}/auth-key
+LoadCredential=tls.crt:{{ pbs_rclone_s3_config_dir }}/tls.crt
+LoadCredential=tls.key:{{ pbs_rclone_s3_config_dir }}/tls.key
+
+# Auth key passed through the environment, never argv.
+# --vfs-cache-mode off: a 200 OK on PUT means the chunk reached Drive.
+ExecStart=/bin/sh -c 'RCLONE_AUTH_KEY="$$(cat "$${CREDENTIALS_DIRECTORY}/auth-key")" && export RCLONE_AUTH_KEY && exec /usr/bin/rclone serve s3 gdrive-crypt: \
+    --config "$${CREDENTIALS_DIRECTORY}/rclone.conf" \
+    --cache-dir "$${CACHE_DIRECTORY}" \
+    --addr 127.0.0.1:{{ pbs_rclone_s3_listen_port }} \
+    --cert "$${CREDENTIALS_DIRECTORY}/tls.crt" \
+    --key "$${CREDENTIALS_DIRECTORY}/tls.key" \
+    --min-tls-version tls1.2 \
+    --force-path-style=true \
+    --vfs-cache-mode off \
+    --dir-cache-time 24h \
+    --log-level INFO'
+Restart=on-failure
+RestartSec=10s
+TimeoutStopSec=60s
+
+LimitNOFILE=65536
+MemoryHigh=1G
+MemoryMax=2G
+TasksMax=512
+
+# Hardening
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+PrivateIPC=yes
+PrivateUsers=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+KeyringMode=private
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RemoveIPC=yes
+NoExecPaths=/
+ExecPaths=/usr
+
+# Network: egress to Google can't be filtered by IP, only bind is restricted
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SocketBindAllow=tcp:{{ pbs_rclone_s3_listen_port }}
+SocketBindDeny=any
+# Optional: block LAN, keep loopback and DNS resolvers (Allow wins over Deny)
+#IPAddressAllow=localhost <dns-resolver-ips>
+#IPAddressDeny=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 link-local multicast
+
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged
+SystemCallErrorNumber=EPERM
+
+[Install]
+WantedBy=multi-user.target

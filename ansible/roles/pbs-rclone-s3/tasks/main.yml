@@ -1,0 +1,33 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for roles/pbs-rclone-s3
+
+- name: Include secrets tasks
+  ansible.builtin.include_tasks: secrets.yml
+
+- name: Include rclone install tasks
+  ansible.builtin.include_tasks: install.yml
+
+- name: Include TLS certificate tasks
+  ansible.builtin.include_tasks: tls.yml
+
+- name: Include rclone config tasks
+  ansible.builtin.include_tasks: config.yml
+
+- name: Include rclone-s3 service tasks
+  ansible.builtin.include_tasks: service.yml
+
+# Following steps talk to the live service and PBS, nothing to simulate
+- name: Include bucket tasks
+  ansible.builtin.include_tasks: bucket.yml
+  when: not ansible_check_mode
+
+- name: Include PBS S3 endpoint tasks
+  ansible.builtin.include_tasks: pbs-endpoint.yml
+  when: not ansible_check_mode
+
+- name: Include PBS datastore tasks
+  ansible.builtin.include_tasks: datastore.yml
+  when:
+      - pbs_rclone_s3_create_datastore | bool
+      - not ansible_check_mode

@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+# Loaded read-only via systemd LoadCredential; service account never writes back a token.
+
+[gdrive]
+type = drive
+scope = drive
+service_account_file = ${CREDENTIALS_DIRECTORY}/gdrive-sa.json
+team_drive = {{ pbs_rclone_s3_shared_drive_id }}
+# Content manager can't permanently delete on a Shared Drive (needs Manager).
+# Deleted chunks sit in trash 30 days (count toward item limit, but undoable).
+use_trash = true
+skip_gdocs = true
+# Fail fast at the 750 GB/day upload cap instead of retrying forever
+stop_on_upload_limit = true
+
+[gdrive-crypt]
+type = crypt
+remote = gdrive:{{ pbs_rclone_s3_drive_root }}
+filename_encryption = standard
+directory_name_encryption = true
+password = {{ pbs_rclone_s3_secrets.crypt_password_obscured }}
+password2 = {{ pbs_rclone_s3_secrets.crypt_password2_obscured }}
