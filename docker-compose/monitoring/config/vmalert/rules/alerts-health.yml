@@ -5,7 +5,7 @@ groups:
     interval: 30s
     rules:
       - alert: TooManyRestarts
-        expr: changes(process_start_time_seconds{job=~".*(victoriametrics|vmagent|vmalert|alertmanager)"}[15m]) > 2
+        expr: changes(process_start_time_seconds{job=~".*(victoriametrics|vmagent|vmalert|alertmanager|authentik)"}[15m]) > 2
         labels:
           severity: critical
         annotations:
@@ -13,7 +13,7 @@ groups:
           description: "Job {{ $labels.job }} on {{ $labels.instance }} restarted {{ $value }} times in the last 15 minutes. This may indicate a crash loop."
 
       - alert: ServiceDown
-        expr: up{job=~".*(victoriametrics|vmagent|vmalert|alertmanager)"} == 0
+        expr: up{job=~".*(victoriametrics|vmagent|vmalert|alertmanager|authentik)"} == 0
         for: 2m
         labels:
           severity: critical

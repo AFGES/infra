@@ -19,6 +19,18 @@
 
   lockFileMaintenance: { enabled: true, schedule: ["before 6am on monday"] },
 
+  // Versions pinned in ansible role defaults via `# renovate:` comments
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^ansible/roles/[^/]+/defaults/main\\.ya?ml$/"],
+      matchStrings: [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\s+\\w+: \"?(?<currentValue>[^\"\\s]+)\"?",
+      ],
+      extractVersionTemplate: "^v?(?<version>.*)$",
+    },
+  ],
+
   packageRules: [
     // Group each compose stack so a stack updates as one PR
     {
@@ -30,6 +42,11 @@
       matchFileNames: ["docker-compose/reverse-proxy/**"],
       groupName: "reverse-proxy stack",
       semanticCommitScope: "reverse-proxy",
+    },
+    {
+      matchFileNames: ["docker-compose/auth/**"],
+      groupName: "auth stack",
+      semanticCommitScope: "auth",
     },
     // Tofu providers together
     {

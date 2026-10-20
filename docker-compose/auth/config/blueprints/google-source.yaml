@@ -1,0 +1,45 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Google Workspace login source.
+# The OAuth client is "Internal" in the Workspace, so only afges.org accounts can sign in.
+# Redirect URI: https://auth.afges.eu/source/oauth/callback/google/
+version: 1
+metadata:
+  name: AFGES - Google Workspace source
+entries:
+  # Make sure the default flows and stages exist before referencing them
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-source-authentication.yaml
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-source-enrollment.yaml
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-authentication-flow.yaml
+      required: true
+
+  - model: authentik_sources_oauth.oauthsource
+    id: google-source
+    identifiers:
+      slug: google
+    attrs:
+      name: Google Workspace
+      provider_type: google
+      consumer_key: !Env GOOGLE_CLIENT_ID
+      consumer_secret: !Env GOOGLE_CLIENT_SECRET
+      authentication_flow: !Find [authentik_flows.flow, [slug, default-source-authentication]]
+      enrollment_flow: !Find [authentik_flows.flow, [slug, default-source-enrollment]]
+      user_matching_mode: email_link
+
+  # Show the Google button on the default login page
+  - model: authentik_stages_identification.identificationstage
+    identifiers:
+      name: default-authentication-identification
+    attrs:
+      sources:
+        - !KeyOf google-source

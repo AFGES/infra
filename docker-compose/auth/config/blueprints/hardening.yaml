@@ -1,0 +1,60 @@
+# yaml-language-server: $schema=https://goauthentik.io/blueprints/schema.json
+# Security hardening on top of the default flows:
+# - local (password) logins must use MFA; Google logins use the source flow and Google's own MFA
+# - block login attempts from IPs with a bad reputation (failed logins)
+version: 1
+metadata:
+  name: AFGES - Hardening
+entries:
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-authentication-flow.yaml
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-authenticator-totp-setup.yaml
+      required: true
+  - model: authentik_blueprints.metaapplyblueprint
+    attrs:
+      identifiers:
+        path: default/flow-default-authenticator-webauthn-setup.yaml
+      required: true
+
+  # Force MFA enrollment for accounts without a device
+  - model: authentik_stages_authenticator_validate.authenticatorvalidatestage
+    identifiers:
+      name: default-authentication-mfa-validation
+    attrs:
+      not_configured_action: configure
+      device_classes:
+        - totp
+        - webauthn
+        - static
+      configuration_stages:
+        - !Find [authentik_stages_authenticator_webauthn.authenticatorwebauthnstage, [name, default-authenticator-webauthn-setup]]
+        - !Find [authentik_stages_authenticator_totp.authenticatortotpstage, [name, default-authenticator-totp-setup]]
+
+  # Deny the login flow for IPs whose failed-login score dropped to the threshold.
+  # The policy passes when the score is low, so the binding is negated.
+  # The flow is referenced with !KeyOf: binding targets need its pbm_uuid, which !Find does not return.
+  - model: authentik_flows.flow
+    id: authentication-flow
+    identifiers:
+      slug: default-authentication-flow
+  - model: authentik_policies_reputation.reputationpolicy
+    id: reputation-policy
+    identifiers:
+      name: afges-login-reputation
+    attrs:
+      check_ip: true
+      check_username: false
+      threshold: -5
+  - model: authentik_policies.policybinding
+    identifiers:
+      order: 0
+      target: !KeyOf authentication-flow
+      policy: !KeyOf reputation-policy
+    attrs:
+      negate: true

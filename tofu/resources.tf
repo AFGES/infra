@@ -45,5 +45,14 @@ module "flatcar_nodes" {
       }
       internet_access = true
     }
+
+    auth = {
+      id     = 3
+      memory = 4
+      persistent_disk = {
+        size = 20
+      }
+      internet_access = true
+    }
   }
 }
