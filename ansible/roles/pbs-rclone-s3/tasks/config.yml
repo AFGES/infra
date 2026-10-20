@@ -9,10 +9,9 @@
   notify: Reload systemd and restart rclone-s3
   no_log: true
 
-# All SA key fields are strings; YAML may parse e.g. client_id as a number
 - name: Deploy Google service account key
   ansible.builtin.copy:
-      content: "{{ dict(pbs_rclone_s3_secrets.gdrive_service_account.keys() | zip(pbs_rclone_s3_secrets.gdrive_service_account.values() | map('string'))) | to_nice_json }}\n"
+      content: "{{ pbs_rclone_s3_secrets.gdrive_service_account | to_nice_json }}\n"
       dest: "{{ pbs_rclone_s3_config_dir }}/gdrive-sa.json"
       owner: root
       group: root
@@ -28,5 +27,6 @@
       owner: root
       group: root
       mode: "0600"
+  register: rclone_s3_auth_key
   notify: Reload systemd and restart rclone-s3
   no_log: true

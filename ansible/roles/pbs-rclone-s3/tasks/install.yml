@@ -1,4 +1,17 @@
 ---
+- name: Get installed PBS version
+  ansible.builtin.command: dpkg-query -W -f=${Version} proxmox-backup-server
+  register: pbs_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Check PBS supports S3 datastores
+  ansible.builtin.assert:
+      that: pbs_installed.stdout is version('4.2', '>=')
+      fail_msg: "PBS >= 4.2 required for S3 datastores, found '{{ pbs_installed.stdout }}'"
+      quiet: true
+
 - name: Get installed rclone version
   ansible.builtin.command: dpkg-query -W -f=${Version} rclone
   register: rclone_installed
@@ -13,7 +26,7 @@
         ansible.builtin.get_url:
             url: "https://downloads.rclone.org/v{{ pbs_rclone_s3_version }}/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
             dest: "/tmp/rclone-v{{ pbs_rclone_s3_version }}-linux-amd64.deb"
-            checksum: "sha256:{{ pbs_rclone_s3_deb_sha256 }}"
+            checksum: "sha256:https://downloads.rclone.org/v{{ pbs_rclone_s3_version }}/SHA256SUMS"
             mode: "0644"
 
       - name: Install rclone .deb

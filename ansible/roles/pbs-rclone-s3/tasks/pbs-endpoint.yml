@@ -75,9 +75,10 @@
           - --secret-key
           - "{{ pbs_rclone_s3_secrets.s3_secret_key }}"
   changed_when: true
+  # Follow sops key changes so PBS and rclone stay in sync
   when:
       - pbs_rclone_s3_endpoint | length > 0
-      - pbs_rclone_s3_rotate_secret | bool
+      - (rclone_s3_auth_key is changed) or (pbs_rclone_s3_rotate_secret | bool)
   no_log: true
 
 - name: Check PBS can reach the bucket

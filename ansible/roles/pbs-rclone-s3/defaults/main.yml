@@ -3,10 +3,9 @@
 # defaults file for roles/pbs-rclone-s3
 
 # rclone upstream .deb (Debian trixie ships 1.60.1, serve s3 needs >= 1.65).
-# Bump sha256 by hand from https://downloads.rclone.org/v<version>/SHA256SUMS
+# Checksum verified against the release's SHA256SUMS.
 # renovate: datasource=github-releases depName=rclone/rclone
 pbs_rclone_s3_version: "1.75.2"
-pbs_rclone_s3_deb_sha256: "efbfe852181f7191eb3c9043ed1ab49c9b2d0ba045c61c926a5da111c939ec5c"
 
 pbs_rclone_s3_secrets_file: "{{ playbook_dir }}/secrets/pbs-rclone-s3.sops.yml"
 pbs_rclone_s3_config_dir: /etc/rclone-s3
@@ -17,12 +16,12 @@ pbs_rclone_s3_region: us-east-1
 pbs_rclone_s3_bucket: pbs
 
 # Google Shared Drive ID (required, not secret) and folder holding the crypt remote
-pbs_rclone_s3_shared_drive_id: "0ANaaHS3ugcijUk9PVA"
+pbs_rclone_s3_shared_drive_id: ""
 pbs_rclone_s3_drive_root: pbs-s3
 
 # PBS S3 endpoint
 pbs_rclone_s3_pbs_endpoint_id: gdrive-crypt
-# Push access/secret key to an existing PBS endpoint
+# Force-push access/secret key to the PBS endpoint (done automatically when auth-key changes)
 pbs_rclone_s3_rotate_secret: false
 
 # PBS datastore (opt-in, see README)

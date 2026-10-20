@@ -6,3 +6,6 @@
   roles:
       - role: pbs-initial
       - role: pbs-rclone-s3
+        vars:
+            pbs_rclone_s3_shared_drive_id: "0ANaaHS3ugcijUk9PVA"
+            pbs_rclone_s3_create_datastore: true

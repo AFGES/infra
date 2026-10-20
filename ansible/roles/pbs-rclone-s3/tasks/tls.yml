@@ -7,6 +7,15 @@
       group: root
       mode: "0700"
 
+- name: Check TLS key and certificate
+  ansible.builtin.stat:
+      path: "{{ pbs_rclone_s3_config_dir }}/{{ item }}"
+  loop:
+      - tls.key
+      - tls.crt
+  register: rclone_s3_tls_files
+
+# Regenerates both if either is missing; the endpoint task re-pins the fingerprint
 - name: Generate self-signed TLS certificate for 127.0.0.1
   ansible.builtin.command:
       argv:
@@ -28,7 +37,8 @@
           - "{{ pbs_rclone_s3_config_dir }}/tls.key"
           - -out
           - "{{ pbs_rclone_s3_config_dir }}/tls.crt"
-      creates: "{{ pbs_rclone_s3_config_dir }}/tls.crt"
+  changed_when: true
+  when: not (rclone_s3_tls_files.results | map(attribute='stat.exists') | min)
   notify: Reload systemd and restart rclone-s3
 
 - name: Restrict TLS files permissions

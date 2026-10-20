@@ -18,7 +18,7 @@ Requirements
 
 1. Create a Google Cloud service account and a JSON key for it.
 2. Add the service account to the Shared Drive as **Content manager**. Manager is not needed, because deletes go to trash.
-3. Set `pbs_rclone_s3_shared_drive_id`. The ID is the last part of the Shared Drive URL.
+3. Set `pbs_rclone_s3_shared_drive_id` in the playbook or inventory. The ID is the last part of the Shared Drive URL.
 4. Create `ansible/secrets/pbs-rclone-s3.sops.yml` with `sops ansible/secrets/pbs-rclone-s3.sops.yml`:
 
 ```yaml
@@ -30,7 +30,7 @@ gdrive_service_account:      # SA JSON key, as a YAML map
         -----BEGIN PRIVATE KEY-----
         ...
     client_email: ...@....iam.gserviceaccount.com
-    client_id: ...
+    client_id: "..."           # quote it: the 21-digit ID loses precision as a YAML number
     token_uri: https://oauth2.googleapis.com/token
 crypt_password_obscured: ...   # rclone obscure '<password>'
 crypt_password2_obscured: ...  # rclone obscure '<salt>'
@@ -50,10 +50,10 @@ See `defaults/main.yml`. The main ones:
 | Variable | Default | Notes |
 |---|---|---|
 | `pbs_rclone_s3_shared_drive_id` | `""` | Required |
-| `pbs_rclone_s3_version` / `pbs_rclone_s3_deb_sha256` | `1.75.2` | Renovate bumps the version. Update the sha256 by hand from `SHA256SUMS`. |
+| `pbs_rclone_s3_version` | `1.75.2` | Renovate bumps it. The download is checked against that release's `SHA256SUMS`. |
 | `pbs_rclone_s3_drive_root` | `pbs-s3` | Drive folder that holds the encrypted data |
 | `pbs_rclone_s3_bucket` | `pbs` | |
-| `pbs_rclone_s3_rotate_secret` | `false` | Pushes the sops access and secret key to the existing PBS endpoint |
+| `pbs_rclone_s3_rotate_secret` | `false` | Force-pushes the sops access and secret key to the PBS endpoint. Done automatically when `auth-key` changes. |
 | `pbs_rclone_s3_create_datastore` | `false` | See below |
 
 Datastore
