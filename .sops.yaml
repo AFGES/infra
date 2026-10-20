@@ -9,3 +9,8 @@ creation_rules:
     key_groups:
       - age:
           - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu
+
+  - path_regex: ansible/secrets/.*\.sops\.yml$
+    key_groups:
+      - age:
+          - age1hasavauxmejevz4kx9mn8cynj09675l9hhtsswkqr806mm97hpgsc67csu
