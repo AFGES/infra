@@ -30,6 +30,7 @@
           - "ipmi_exporter-{{ ipmi_exporter_release.tag | regex_replace('^v', '') }}.linux-amd64/ipmi_exporter"
       extra_opts:
           - --strip-components=1
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: Remove ipmi_exporter archive
   ansible.builtin.file:
@@ -51,3 +52,4 @@
       enabled: true
       state: started
       daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

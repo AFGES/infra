@@ -30,3 +30,4 @@
       name: unattended-upgrades
       enabled: true
       state: started
+  ignore_errors: "{{ ansible_check_mode }}"
