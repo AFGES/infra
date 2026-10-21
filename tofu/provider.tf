@@ -12,6 +12,10 @@ terraform {
       source  = "carlpett/sops"
       version = "~> 1.4"
     }
+    unifi = {
+      source  = "ubiquiti-community/unifi"
+      version = "~> 0.59"
+    }
   }
 }
 
@@ -19,6 +23,14 @@ provider "ovh" {
   endpoint  = "ovh-eu"
   client_id = data.sops_file.secrets.data["ovh.client_id"]
   client_secret = data.sops_file.secrets.data["ovh.client_secret"]
+}
+
+provider "unifi" {
+  api_url = data.sops_file.secrets.data["unifi.api_url"]
+  api_key = data.sops_file.secrets.data["unifi.api_key"]
+
+  # The gateway serves a self-signed certificate
+  allow_insecure = true
 }
 
 provider "proxmox" {
