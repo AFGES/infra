@@ -41,14 +41,46 @@ services:
         condition: service_healthy
     env_file:
       - env/vaultwarden.env
+    environment:
+      # Unprivileged port, so no NET_BIND_SERVICE needed
+      ROCKET_PORT: 8080
     volumes:
       # attachments, sends, icon cache and rsa_key (JWT signing)
       - data:/data
     security_opt:
       - no-new-privileges:true
+    cap_drop:
+      - ALL
     networks:
       - default
       - backend
+    # Phase B (after the data import): uncomment to publish vault.afges.eu.
+    # Clients bypass Pangolin auth; /admin needs Pangolin SSO then ADMIN_TOKEN.
+    # Rules are evaluated in order; path patterns match per segment.
+    # labels:
+    #   - "pangolin.public-resources.vaultwarden.name=vaultwarden"
+    #   - "pangolin.public-resources.vaultwarden.protocol=http"
+    #   - "pangolin.public-resources.vaultwarden.full-domain=vault.afges.eu"
+    #   - "pangolin.public-resources.vaultwarden.auth.sso-enabled=true"
+    #   - "pangolin.public-resources.vaultwarden.rules[0].action=pass"
+    #   - "pangolin.public-resources.vaultwarden.rules[0].match=path"
+    #   - "pangolin.public-resources.vaultwarden.rules[0].value=/admin"
+    #   - "pangolin.public-resources.vaultwarden.rules[1].action=pass"
+    #   - "pangolin.public-resources.vaultwarden.rules[1].match=path"
+    #   - "pangolin.public-resources.vaultwarden.rules[1].value=/admin/*"
+    #   - "pangolin.public-resources.vaultwarden.rules[2].action=allow"
+    #   - "pangolin.public-resources.vaultwarden.rules[2].match=cidr"
+    #   - "pangolin.public-resources.vaultwarden.rules[2].value=0.0.0.0/0"
+    #   - "pangolin.public-resources.vaultwarden.rules[3].action=allow"
+    #   - "pangolin.public-resources.vaultwarden.rules[3].match=cidr"
+    #   - "pangolin.public-resources.vaultwarden.rules[3].value=::/0"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].method=http"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].hostname=vaultwarden"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].port=8080"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].healthcheck.hostname=vaultwarden"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].healthcheck.port=8080"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].healthcheck.path=/alive"
+    #   - "pangolin.public-resources.vaultwarden.targets[0].healthcheck.status=200"
 
   # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
   socket-proxy:
@@ -86,9 +118,6 @@ networks:
   default:
     driver: bridge
     name: password-manager
-    ipam:
-      config:
-        - subnet: 172.30.1.0/24
   backend:
     driver: bridge
     name: password-manager-backend
