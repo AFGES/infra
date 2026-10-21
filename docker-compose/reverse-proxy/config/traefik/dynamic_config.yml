@@ -10,6 +10,9 @@ http:
           enabled: true
           crowdsecLapiHost: crowdsec:8080
           crowdsecLapiKey: {{ env "CROWDSEC_LAPI_KEY" }}
+          crowdsecAppsecEnabled: true
+          crowdsecAppsecHost: crowdsec:7422
+          crowdsecAppsecFailureBlock: true
     redirect-to-https:
       redirectScheme:
         scheme: https
@@ -24,7 +27,6 @@ http:
       middlewares:
         - redirect-to-https
         - badger
-        - crowdsec
 
     # Next.js router (handles everything except API and WebSocket paths)
     next-router:
@@ -34,7 +36,6 @@ http:
         - websecure
       middlewares:
         - badger
-        - crowdsec
       tls:
         certResolver: letsencrypt
 
@@ -46,7 +47,6 @@ http:
         - websecure
       middlewares:
         - badger
-        - crowdsec
       tls:
         certResolver: letsencrypt
 
@@ -58,7 +58,6 @@ http:
         - websecure
       middlewares:
         - badger
-        - crowdsec
       tls:
         certResolver: letsencrypt
 

@@ -35,9 +35,22 @@ certificatesResolvers:
       storage: "/letsencrypt/acme.json"
       caServer: "https://acme-v02.api.letsencrypt.org/directory"
 
+accessLog:
+  filePath: "/var/log/traefik/access.log" # Read by CrowdSec (config/crowdsec/acquis.d/traefik.yaml)
+  format: json
+  bufferingSize: 100
+  fields:
+    headers:
+      defaultMode: drop
+      names:
+        User-Agent: keep
+
 entryPoints:
   web:
     address: ":80"
+    http:
+      middlewares:
+        - crowdsec@file # Applies to every router, including Pangolin resources
   websecure:
     address: ":443"
     transport:
@@ -46,6 +59,8 @@ entryPoints:
     http3:
       advertisedPort: 443
     http:
+      middlewares:
+        - crowdsec@file # Applies to every router, including Pangolin resources
       tls:
         certResolver: "letsencrypt"
       encodedCharacters:

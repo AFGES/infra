@@ -57,6 +57,8 @@ services:
     depends_on:
       pangolin:
         condition: service_healthy
+      crowdsec:
+        condition: service_healthy
     command:
       - --configFile=/etc/traefik/traefik_config.yml
     env_file:
@@ -96,14 +98,21 @@ services:
     image: docker.io/crowdsecurity/crowdsec:latest@sha256:0f2523fa61ef507f15d953045cface490cc880670c62f2755ced17524107f71a
     container_name: crowdsec
     restart: unless-stopped
+    env_file:
+      - env/crowdsec.env # BOUNCER_KEY_traefik: registers the Traefik bouncer key
     environment:
       COLLECTIONS: "crowdsecurity/traefik crowdsecurity/appsec-virtual-patching crowdsecurity/appsec-generic-rules"
     volumes:
       - ./config/crowdsec:/etc/crowdsec:z
       - crowdsec_db:/var/lib/crowdsec/data:z
       - traefik_logs:/var/log/traefik:z,ro
-    ports:
-      - 8080:8080 # Local API port for bouncer communication
+    # LAPI (8080) and AppSec (7422) stay on the internal network, reached by Traefik only
+    healthcheck:
+      test: ["CMD", "cscli", "lapi", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # GED Unistra: document management app, exposed via Pangolin
   ged-unistra:
