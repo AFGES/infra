@@ -37,7 +37,8 @@ services:
       - --generateAndSaveKeyTo=/var/config/key
       - --remoteConfig=http://pangolin:3001/api/v1/
     volumes:
-      - ./config/:/var/config:z
+      # WireGuard key on the persistent disk: a new key registers a new exit node
+      - gerbil_config:/var/config:Z
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -156,6 +157,7 @@ services:
       - socket-proxy
 
 volumes:
+  gerbil_config:
   traefik_letsencrypt:
   traefik_logs:
   postgres_data:
