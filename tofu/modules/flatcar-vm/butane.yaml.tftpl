@@ -29,6 +29,12 @@ storage:
       contents:
         inline: |
           KEYMAP=fr
+    # Let Docker bind ports to the vnet0 IP before the interface is configured
+    - path: /etc/sysctl.d/90-nonlocal-bind.conf
+      mode: 0644
+      contents:
+        inline: |
+          net.ipv4.ip_nonlocal_bind = 1
 %{ if length(kernel_modules) > 0 ~}
     - path: /etc/modules-load.d/flatcar-vm.conf
       mode: 0644
