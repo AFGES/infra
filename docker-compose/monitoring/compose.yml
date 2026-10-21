@@ -3,7 +3,7 @@ name: monitoring
 services:
   # VictoriaMetrics single-node: stores metrics
   victoriametrics:
-    image: docker.io/victoriametrics/victoria-metrics:v1.152.0@sha256:86ca5fdb6d87d56ba047b044039019ba2bd9042b36e35f6ea34e437b6c825cef
+    image: docker.io/victoriametrics/victoria-metrics:v1.154.1@sha256:c7884f32920dd45a9d86542a717227e63af03e060e53bbf8031e6e6fd0e1e05d
     container_name: victoriametrics
     restart: unless-stopped
     volumes:
@@ -32,7 +32,7 @@ services:
 
   # VMAgent: lightweight scraping agent
   vmagent:
-    image: docker.io/victoriametrics/vmagent:v1.152.0@sha256:21d51831acfed657c1d4a805353c278f3669b061cb3a2cd46c0d4f1a4402cb1b
+    image: docker.io/victoriametrics/vmagent:v1.154.1@sha256:970ba603235839655e03501311c683d2269b882f7bcf0ac98892ae422603cb61
     container_name: vmagent
     restart: unless-stopped
     depends_on:
@@ -47,7 +47,7 @@ services:
 
   # VMAlert: evaluates alerting & recording rules
   vmalert:
-    image: docker.io/victoriametrics/vmalert:v1.152.0@sha256:ba00566373eb8c72d70cbee123e27ee75292dc0239830f36218c72712ba396b2
+    image: docker.io/victoriametrics/vmalert:v1.154.1@sha256:aafb962b5a5713c71f0d697d629416f9cccf23aecb74f0ec5e829ddbf3f221f2
     container_name: vmalert
     restart: unless-stopped
     depends_on:
@@ -89,7 +89,7 @@ services:
 
   # PVE Exporter: Proxmox-specific metrics (VM/CT status, storage, etc.)
   pve-exporter:
-    image: docker.io/prompve/prometheus-pve-exporter:latest@sha256:4867684c0a937716f11f770a32d32958bded507cf570fc334f774392afcb2f37
+    image: docker.io/prompve/prometheus-pve-exporter:latest@sha256:5678b230735a80816755dc8b5e0fb139a6595e1d4271ace2d22ff82983d1bdf1
     container_name: pve-exporter
     restart: unless-stopped
     env_file:
@@ -97,7 +97,7 @@ services:
 
   # Grafana: dashboards and visualization
   grafana:
-    image: docker.io/grafana/grafana:13.2.2@sha256:ac461fb352abc50da10a51c7d02462e9c05488f11f53f14b3ad79a8145f638a0
+    image: docker.io/grafana/grafana:13.2.4@sha256:dbbc38ea21103cefb50396340cd88afec779c7e070b0a7bf5a75b4ce46651d3f
     container_name: grafana
     restart: unless-stopped
     depends_on:
@@ -139,7 +139,7 @@ services:
 
   # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
   newt:
-    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
+    image: docker.io/fosrl/newt:latest@sha256:0189c8287058b800cca825590e4c39946b3815344ca48678dd0b96616d639319
     container_name: newt
     restart: unless-stopped
     depends_on:
