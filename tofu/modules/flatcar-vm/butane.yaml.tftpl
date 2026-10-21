@@ -29,6 +29,15 @@ storage:
       contents:
         inline: |
           KEYMAP=fr
+%{ if length(kernel_modules) > 0 ~}
+    - path: /etc/modules-load.d/flatcar-vm.conf
+      mode: 0644
+      contents:
+        inline: |
+%{ for module in kernel_modules ~}
+          ${module}
+%{ endfor ~}
+%{ endif ~}
 
 systemd:
   units:

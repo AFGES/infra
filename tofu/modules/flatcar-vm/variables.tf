@@ -22,6 +22,7 @@ variable "nodes" {
     start_on_provision = optional(bool)
     ha_enabled         = optional(bool)
     internet_access    = optional(bool, false)
+    kernel_modules     = optional(list(string), []) # Loaded at boot via /etc/modules-load.d
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")

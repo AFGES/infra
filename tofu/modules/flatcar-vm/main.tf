@@ -5,6 +5,18 @@ locals {
   ha_nodes         = { for name in data.proxmox_virtual_environment_nodes.available.names : name => null }
   ha_enabled_nodes = { for k, v in var.nodes : k => v if coalesce(v.ha_enabled, var.default_ha_enabled) }
 
+  # Nodes needing a dedicated Ignition config; the others share flatcar-cluster.ign
+  custom_ignition_nodes = { for k, v in var.nodes : k => v if length(v.kernel_modules) > 0 }
+  node_ignition = {
+    for k, v in var.nodes : k => contains(keys(local.custom_ignition_nodes), k) ? {
+      file_id  = proxmox_virtual_environment_file.flatcar_ignition_custom[k].id
+      rendered = data.ct_config.flatcar_ignition_custom[k].rendered
+      } : {
+      file_id  = proxmox_virtual_environment_file.flatcar_ignition.id
+      rendered = data.ct_config.flatcar_ignition.rendered
+    }
+  }
+
   # Compute effective network interfaces per node
   node_network_interfaces = {
     for k, v in var.nodes : k => coalesce(
@@ -51,6 +63,19 @@ data "ct_config" "flatcar_ignition" {
   content = templatefile("${path.module}/butane.yaml.tftpl", {
     ssh_authorized_keys = jsonencode(var.ssh_authorized_keys)
     sops_age_key        = var.sops_age_key
+    kernel_modules      = []
+  })
+  strict = true
+}
+
+# Per-node Ignition configuration for nodes with specific settings
+data "ct_config" "flatcar_ignition_custom" {
+  for_each = local.custom_ignition_nodes
+
+  content = templatefile("${path.module}/butane.yaml.tftpl", {
+    ssh_authorized_keys = jsonencode(var.ssh_authorized_keys)
+    sops_age_key        = var.sops_age_key
+    kernel_modules      = each.value.kernel_modules
   })
   strict = true
 }
@@ -64,6 +89,19 @@ resource "proxmox_virtual_environment_file" "flatcar_ignition" {
   source_raw {
     data      = data.ct_config.flatcar_ignition.rendered
     file_name = "flatcar-cluster.ign"
+  }
+}
+
+resource "proxmox_virtual_environment_file" "flatcar_ignition_custom" {
+  for_each = local.custom_ignition_nodes
+
+  content_type = "snippets"
+  datastore_id = "local"
+  node_name    = var.default_node_name
+
+  source_raw {
+    data      = data.ct_config.flatcar_ignition_custom[each.key].rendered
+    file_name = "flatcar-${each.key}.ign"
   }
 }
 
@@ -110,7 +148,7 @@ module "vms" {
   memory             = coalesce(each.value.memory, var.default_memory)
   start_on_boot      = coalesce(each.value.start_on_boot, var.default_start_on_boot)
   start_on_provision = coalesce(each.value.start_on_provision, var.default_start_on_provision)
-  ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition.id
+  ignition_file_id   = local.node_ignition[each.key].file_id
 
   # Use computed network_interfaces based on internet_access flag
   network_interfaces = local.node_network_interfaces[each.key]
@@ -130,7 +168,7 @@ module "vms" {
   )
 
   # Rebuild VMs when Butane config changes
-  triggers_replace = sha256(data.ct_config.flatcar_ignition.rendered)
+  triggers_replace = sha256(local.node_ignition[each.key].rendered)
 
   disk = {
     size         = 20

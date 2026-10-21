@@ -32,6 +32,8 @@ module "flatcar_nodes" {
   nodes = {
     reverse-proxy = {
       id = 1
+      # gerbil (Pangolin) needs kernel WireGuard; loaded by the host so the container needs no SYS_MODULE
+      kernel_modules = ["wireguard"]
       persistent_disk = {
         size = 20
       }
