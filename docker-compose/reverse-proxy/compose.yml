@@ -1,8 +1,20 @@
 name: pangolin
+
+# Common hardening: log rotation and no privilege escalation via setuid binaries
+x-hardening: &hardening
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  security_opt:
+    - no-new-privileges:true
+
 services:
   pangolin:
     image: docker.io/fosrl/pangolin:ee-postgresql-1.16@sha256:2f5b971b2371d3403f0a8e7cd8728af19b8a994f02a333ad434887b5d21e0b85
     container_name: pangolin
+    <<: *hardening
     restart: unless-stopped
     depends_on:
       postgres:
@@ -14,6 +26,7 @@ services:
       resources:
         limits:
           memory: 1g
+          pids: 200
         reservations:
           memory: 256m
     volumes:
@@ -24,10 +37,14 @@ services:
       interval: "10s"
       timeout: "10s"
       retries: 15
+    networks:
+      - default
+      - db
 
   gerbil:
     image: docker.io/fosrl/gerbil:1.5.2@sha256:1f6e64eaba7997282c7067ba19922fc7e46b5f73e1a27add3dd66a591d50512f
     container_name: gerbil
+    <<: *hardening
     restart: unless-stopped
     depends_on:
       pangolin:
@@ -39,9 +56,14 @@ services:
     volumes:
       # WireGuard key on the persistent disk: a new key registers a new exit node
       - gerbil_config:/var/config:Z
+    # wireguard module is loaded by the host (tofu: kernel_modules), no SYS_MODULE needed
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          pids: 200
     ports:
       - 51820:51820/udp
       - 21820:21820/udp
@@ -52,6 +74,7 @@ services:
   traefik:
     image: docker.io/traefik:v3.7@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
     container_name: traefik
+    <<: *hardening
     restart: unless-stopped
     network_mode: service:gerbil # Ports appear on the gerbil service
     depends_on:
@@ -79,24 +102,46 @@ services:
       - ./config/traefik:/etc/traefik:z,ro # Volume to store the Traefik configuration
       - traefik_letsencrypt:/letsencrypt:Z # Volume to store the Let's Encrypt certificates
       - traefik_logs:/var/log/traefik:z # Volume to store Traefik logs
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          pids: 200
 
   postgres:
     image: docker.io/library/postgres:18@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
     container_name: postgres
+    <<: *hardening
     restart: unless-stopped
     env_file:
       - env/postgres.env
     volumes:
       - postgres_data:/var/lib/postgresql:Z
+    cap_drop:
+      - ALL
+    cap_add: # entrypoint chowns the data dir, then drops to the postgres user
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          pids: 200
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - db # Reachable by pangolin only
 
   crowdsec:
     image: docker.io/crowdsecurity/crowdsec:latest@sha256:0f2523fa61ef507f15d953045cface490cc880670c62f2755ced17524107f71a
     container_name: crowdsec
+    <<: *hardening
     restart: unless-stopped
     env_file:
       - env/crowdsec.env # BOUNCER_KEY_traefik: registers the Traefik bouncer key
@@ -106,6 +151,11 @@ services:
       - ./config/crowdsec:/etc/crowdsec:z
       - crowdsec_db:/var/lib/crowdsec/data:z
       - traefik_logs:/var/log/traefik:z,ro
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          pids: 200
     # LAPI (8080) and AppSec (7422) stay on the internal network, reached by Traefik only
     healthcheck:
       test: ["CMD", "cscli", "lapi", "status"]
@@ -118,7 +168,13 @@ services:
   ged-unistra:
     image: ghcr.io/afges/ged-unistra:0.2@sha256:11efc783ebf3c22f39c1a15813fdd06df5614adddd3ec9ecdd32b990cf03b29d
     container_name: ged-unistra
+    <<: *hardening
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          pids: 200
     labels:
       - "pangolin.public-resources.ged-unistra.name=GED Unistra"
       - "pangolin.public-resources.ged-unistra.protocol=http"
@@ -141,7 +197,20 @@ services:
   socket-proxy:
     image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
     container_name: socket-proxy
+    <<: *hardening
     restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /run
+      - /tmp
+      - /var/lib/haproxy
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 64m
+          pids: 50
     environment:
       CONTAINERS: 1
       EVENTS: 1
@@ -154,7 +223,15 @@ services:
   newt:
     image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
     container_name: newt
+    <<: *hardening
     restart: unless-stopped
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+          pids: 200
     depends_on:
       - socket-proxy
     env_file:
@@ -179,4 +256,8 @@ networks:
   socket-proxy:
     driver: bridge
     name: pangolin-socket-proxy
+    internal: true
+  db:
+    driver: bridge
+    name: pangolin-db
     internal: true

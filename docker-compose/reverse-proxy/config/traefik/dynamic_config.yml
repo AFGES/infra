@@ -16,6 +16,13 @@ http:
     redirect-to-https:
       redirectScheme:
         scheme: https
+    # No frame-deny/CSP: they would break some proxied apps
+    security-headers:
+      headers:
+        stsSeconds: 31536000
+        contentTypeNosniff: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        browserXssFilter: false
 
   routers:
     # HTTP to HTTPS redirect router
@@ -95,6 +102,20 @@ http:
       loadBalancer:
         servers:
           - url: "http://pangolin:3003" # API integration server
+
+# Default TLS policy, used by every router (including Pangolin resources)
+tls:
+  options:
+    default:
+      minVersion: VersionTLS12
+      sniStrict: true
+      cipherSuites:
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 
 tcp:
   serversTransports:
