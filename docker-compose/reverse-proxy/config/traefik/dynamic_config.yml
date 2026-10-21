@@ -8,11 +8,15 @@ http:
       plugin:
         crowdsec:
           enabled: true
+          # Fail open if crowdsec is down: live mode would 403 every request when LAPI is unreachable
+          crowdsecMode: stream
+          updateMaxFailure: -1
           crowdsecLapiHost: crowdsec:8080
           crowdsecLapiKey: {{ env "CROWDSEC_LAPI_KEY" }}
           crowdsecAppsecEnabled: true
           crowdsecAppsecHost: crowdsec:7422
-          crowdsecAppsecFailureBlock: true
+          crowdsecAppsecFailureBlock: false
+          crowdsecAppsecUnreachableBlock: false
     redirect-to-https:
       redirectScheme:
         scheme: https

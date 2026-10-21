@@ -108,6 +108,42 @@ services:
           memory: 512m
           pids: 200
 
+  # Rotates the Traefik access log (copytruncate: Traefik appends, CrowdSec handles truncation)
+  logrotate:
+    image: docker.io/library/busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+    container_name: logrotate
+    <<: *hardening
+    restart: unless-stopped
+    init: true # sh as PID 1 ignores SIGTERM
+    network_mode: none
+    read_only: true
+    cap_drop:
+      - ALL
+    environment:
+      MAX_BYTES: 52428800 # 50 MiB
+    volumes:
+      - traefik_logs:/var/log/traefik:z
+    deploy:
+      resources:
+        limits:
+          memory: 32m
+          pids: 20
+    command:
+      - /bin/sh
+      - -c
+      - |
+        cd /var/log/traefik || exit 1
+        while true; do
+          if [ -f access.log ] && [ "$$(stat -c %s access.log)" -gt "$$MAX_BYTES" ]; then
+            rm -f access.log.3.gz
+            if [ -f access.log.2.gz ]; then mv access.log.2.gz access.log.3.gz; fi
+            if [ -f access.log.1.gz ]; then mv access.log.1.gz access.log.2.gz; fi
+            cp access.log access.log.1 && : > access.log
+            gzip -f access.log.1
+          fi
+          sleep 600
+        done
+
   postgres:
     image: docker.io/library/postgres:18@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
     container_name: postgres
@@ -154,7 +190,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512m
+          memory: 768m
           pids: 200
     # LAPI (8080) and AppSec (7422) stay on the internal network
     ports:

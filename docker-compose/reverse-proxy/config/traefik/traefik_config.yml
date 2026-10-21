@@ -42,7 +42,6 @@ certificatesResolvers:
 accessLog:
   filePath: "/var/log/traefik/access.log" # Read by CrowdSec (config/crowdsec/acquis.d/traefik.yaml)
   format: json
-  bufferingSize: 100
   fields:
     headers:
       defaultMode: drop
