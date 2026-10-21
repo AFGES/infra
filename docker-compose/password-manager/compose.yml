@@ -1,0 +1,99 @@
+name: password-manager
+
+services:
+  # PostgreSQL: vaultwarden database, reachable only on the internal backend network
+  postgresql:
+    image: docker.io/library/postgres:18.6-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+    container_name: postgresql
+    restart: unless-stopped
+    env_file:
+      - env/postgres.env
+    volumes:
+      # Postgres 18+ keeps PGDATA in a versioned subdirectory of /var/lib/postgresql
+      - database:/var/lib/postgresql
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # Entrypoint fixes ownership of PGDATA then drops to the postgres user
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETGID
+      - SETUID
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - backend
+
+  # OIDCwarden: Vaultwarden fork with Google Workspace SSO (SSO only, see env/vaultwarden.env)
+  vaultwarden:
+    image: ghcr.io/timshel/oidcwarden:v2026.9.0-3-alpine@sha256:1a907e4eba84e8f38b3e12fb52bb9579628948b8d8eff24374bb6e23b53e4471
+    container_name: vaultwarden
+    restart: unless-stopped
+    depends_on:
+      postgresql:
+        condition: service_healthy
+    env_file:
+      - env/vaultwarden.env
+    volumes:
+      # attachments, sends, icon cache and rsa_key (JWT signing)
+      - data:/data
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - default
+      - backend
+
+  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
+  socket-proxy:
+    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+
+  # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
+  newt:
+    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
+    container_name: newt
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    env_file:
+      - env/newt.env
+    environment:
+      DOCKER_SOCKET: tcp://socket-proxy:2375
+    networks:
+      - default
+      - socket-proxy
+
+volumes:
+  database: {}
+  data: {}
+
+networks:
+  default:
+    driver: bridge
+    name: password-manager
+    ipam:
+      config:
+        - subnet: 172.30.1.0/24
+  backend:
+    driver: bridge
+    name: password-manager-backend
+    internal: true
+  socket-proxy:
+    driver: bridge
+    name: password-manager-socket-proxy
+    internal: true

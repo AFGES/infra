@@ -56,5 +56,13 @@ module "flatcar_nodes" {
       }
       internet_access = true
     }
+
+    password-manager = {
+      id = 4
+      persistent_disk = {
+        size = 20
+      }
+      internet_access = true
+    }
   }
 }
