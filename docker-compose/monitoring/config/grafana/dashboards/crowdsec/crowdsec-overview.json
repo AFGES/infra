@@ -41,7 +41,7 @@
       "cacheTimeout": null,
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -128,7 +128,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "decimals": 1,
       "fieldConfig": {
@@ -258,7 +258,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "decimals": 1,
       "fieldConfig": {
@@ -363,7 +363,7 @@
       "dashes": false,
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "decimals": 1,
       "fieldConfig": {
@@ -478,7 +478,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -540,7 +540,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -602,7 +602,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -686,7 +686,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -785,7 +785,7 @@
           "dashes": false,
           "datasource": {
             "type": "prometheus",
-            "uid": "victoriametrics"
+            "uid": "${datasource}"
           },
           "decimals": 1,
           "fieldConfig": {
@@ -893,7 +893,7 @@
           "dashes": false,
           "datasource": {
             "type": "prometheus",
-            "uid": "victoriametrics"
+            "uid": "${datasource}"
           },
           "decimals": 1,
           "fieldConfig": {
@@ -1014,7 +1014,7 @@
           "dashes": false,
           "datasource": {
             "type": "prometheus",
-            "uid": "victoriametrics"
+            "uid": "${datasource}"
           },
           "decimals": 1,
           "fieldConfig": {
@@ -1119,7 +1119,7 @@
           "dashes": false,
           "datasource": {
             "type": "prometheus",
-            "uid": "victoriametrics"
+            "uid": "${datasource}"
           },
           "decimals": 1,
           "fieldConfig": {
@@ -1224,7 +1224,7 @@
           "dashes": false,
           "datasource": {
             "type": "prometheus",
-            "uid": "victoriametrics"
+            "uid": "${datasource}"
           },
           "decimals": 1,
           "fieldConfig": {
@@ -1332,7 +1332,25 @@
   "style": "dark",
   "tags": [],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "text": "VictoriaMetrics",
+          "value": "VictoriaMetrics"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      }
+    ]
   },
   "time": {
     "from": "now-24h",

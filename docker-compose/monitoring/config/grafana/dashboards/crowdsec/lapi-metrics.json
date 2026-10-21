@@ -41,7 +41,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -104,7 +104,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -176,7 +176,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -237,7 +237,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -298,7 +298,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -373,7 +373,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -434,7 +434,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -499,11 +499,28 @@
   "templating": {
     "list": [
       {
+        "current": {
+          "text": "VictoriaMetrics",
+          "value": "VictoriaMetrics"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
         "allValue": null,
         "current": {},
         "datasource": {
           "type": "prometheus",
-          "uid": "victoriametrics"
+          "uid": "${datasource}"
         },
         "definition": "label_values(cs_info, instance)",
         "description": null,

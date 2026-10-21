@@ -103,6 +103,8 @@ services:
     depends_on:
       victoriametrics:
         condition: service_healthy
+    # The "default" dashboard provider fails (and blocks all provisioning) if its path is missing on a fresh volume
+    entrypoint: ["sh", "-c", "mkdir -p /var/lib/grafana/dashboards && exec /run.sh"]
     env_file:
       - env/grafana.env
     volumes:
