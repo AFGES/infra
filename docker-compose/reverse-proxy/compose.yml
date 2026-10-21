@@ -72,7 +72,7 @@ services:
       - 80:80
 
   traefik:
-    image: docker.io/traefik:v3.7@sha256:24841fe2de7304c149343d877d2923b4c8800a38ba015dea9174c23b20e344a0
+    image: docker.io/traefik:v3.7@sha256:6d3e069ee484ab1da5adfdda555a75eb9b1545ef09096a0cc7c3043101986a20
     container_name: traefik
     <<: *hardening
     restart: unless-stopped
@@ -110,7 +110,7 @@ services:
 
   # Rotates the Traefik access log (copytruncate: Traefik appends, CrowdSec handles truncation)
   logrotate:
-    image: docker.io/library/busybox:1.37@sha256:bdf57e528e45e4433820e045b29b4597825a1c9e38353532d90a01445013f82e
+    image: docker.io/library/busybox:1.38@sha256:fd7dc98638c8e305f4dc34e979f1c0fdfdcaeb0fbf8fcff77ae834b6da3d7e6e
     container_name: logrotate
     <<: *hardening
     restart: unless-stopped
@@ -145,7 +145,7 @@ services:
         done
 
   postgres:
-    image: docker.io/library/postgres:18@sha256:5a5a84b19854a9ffaa54082c166ff4ec27473a361e496e5ea167f298f2da9722
+    image: docker.io/library/postgres:18@sha256:1267c7e692de235fda2a50dbcdbcbca4672ea6a0298576a6bd9d07cafc319b32
     container_name: postgres
     <<: *hardening
     restart: unless-stopped
@@ -303,7 +303,7 @@ services:
 
   # Newt: Pangolin tunnel client – registers labeled services as resources
   newt:
-    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
+    image: docker.io/fosrl/newt:latest@sha256:0189c8287058b800cca825590e4c39946b3815344ca48678dd0b96616d639319
     container_name: newt
     <<: *hardening
     restart: unless-stopped
