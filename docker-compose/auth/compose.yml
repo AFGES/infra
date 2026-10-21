@@ -64,6 +64,7 @@ services:
       - data:/data
       - templates:/templates
       - ./config/blueprints:/blueprints/custom:z,ro
+      - ./config/public.pem:/authentik/enterprise/public.pem:z,ro
     networks:
       - default
       - backend
@@ -102,6 +103,7 @@ services:
       - certs:/certs
       - templates:/templates
       - ./config/blueprints:/blueprints/custom:z,ro
+      - ./config/public.pem:/authentik/enterprise/public.pem:z,ro
     networks:
       - default
       - backend
