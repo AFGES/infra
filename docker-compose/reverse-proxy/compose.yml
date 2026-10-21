@@ -156,13 +156,59 @@ services:
         limits:
           memory: 512m
           pids: 200
-    # LAPI (8080) and AppSec (7422) stay on the internal network, reached by Traefik only
+    # LAPI (8080) and AppSec (7422) stay on the internal network
+    ports:
+      # Prometheus metrics, scraped by the monitoring VM over vnet0 only
+      - 10.20.0.1:6060:6060
     healthcheck:
       test: ["CMD", "cscli", "lapi", "status"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+
+  # CrowdSec Web UI: alerts and decisions, exposed via Pangolin
+  crowdsec-web-ui:
+    image: ghcr.io/theduffman85/crowdsec-web-ui:2026.10.8@sha256:1e7ef2ddb701c8610301787c9ed476b57184ec5f5e839db804fbb4da3dccc17f
+    container_name: crowdsec-web-ui
+    <<: *hardening
+    restart: unless-stopped
+    depends_on:
+      crowdsec:
+        condition: service_healthy
+    env_file:
+      - env/crowdsec_web_ui.env
+    environment:
+      CONFIG_INSTANCE_LAPI_URL: http://crowdsec:8080
+      # Watcher machine, registered once with `cscli machines add crowdsec-web-ui`
+      CONFIG_INSTANCE_LAPI_AUTH_USERNAME: crowdsec-web-ui
+      CONFIG_INSTANCE_METRICS_URL: http://crowdsec:6060/metrics
+      CONFIG_AUTH_ENABLED: "true"
+    volumes:
+      - crowdsec_web_ui:/app/data
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+          pids: 200
+    labels:
+      - "pangolin.public-resources.crowdsec.name=CrowdSec"
+      - "pangolin.public-resources.crowdsec.protocol=http"
+      - "pangolin.public-resources.crowdsec.full-domain=crowdsec.afges.eu"
+      - "pangolin.public-resources.crowdsec.auth.sso-enabled=true"
+      - "pangolin.public-resources.crowdsec.targets[0].method=http"
+      - "pangolin.public-resources.crowdsec.targets[0].hostname=crowdsec-web-ui"
+      - "pangolin.public-resources.crowdsec.targets[0].port=3000"
+      - "pangolin.public-resources.crowdsec.targets[0].healthcheck.hostname=crowdsec-web-ui"
+      - "pangolin.public-resources.crowdsec.targets[0].healthcheck.port=3000"
+      - "pangolin.public-resources.crowdsec.targets[0].healthcheck.path=/api/health"
+      - "pangolin.public-resources.crowdsec.targets[0].healthcheck.status=200"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # GED Unistra: document management app, exposed via Pangolin
   ged-unistra:
@@ -248,6 +294,7 @@ volumes:
   traefik_logs:
   postgres_data:
   crowdsec_db:
+  crowdsec_web_ui:
 
 networks:
   default:

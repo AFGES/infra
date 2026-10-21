@@ -6,3 +6,9 @@ providers:
     type: file
     options:
       path: /var/lib/grafana/dashboards
+
+  - name: crowdsec
+    folder: CrowdSec
+    type: file
+    options:
+      path: /etc/grafana/dashboards/crowdsec

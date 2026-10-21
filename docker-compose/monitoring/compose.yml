@@ -109,6 +109,7 @@ services:
       - grafanadata:/var/lib/grafana
       - ./config/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:z,ro
       - ./config/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:z,ro
+      - ./config/grafana/dashboards:/etc/grafana/dashboards:z,ro
     labels:
       - "pangolin.public-resources.grafana.name=Grafana"
       - "pangolin.public-resources.grafana.protocol=http"

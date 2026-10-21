@@ -1,0 +1,6 @@
+# Merged over the generated config.yaml
+prometheus:
+  enabled: true
+  level: full
+  listen_addr: 0.0.0.0 # Published on vnet0 only (compose.yml)
+  listen_port: 6060
