@@ -8,7 +8,8 @@ passwd:
 
 storage:
   disks:
-    - device: /dev/sdb
+    # Stable path: /dev/sdX order is not guaranteed and may land on the OS disk
+    - device: /dev/disk/by-id/scsi-0QEMU_QEMU_HARDDISK_drive-scsi1
       wipe_table: false
       partitions:
         - number: 1
@@ -30,14 +31,17 @@ storage:
         inline: |
           KEYMAP=fr
     # Let Docker bind ports to the vnet0 IP before the interface is configured
-    - path: /etc/sysctl.d/90-nonlocal-bind.conf
+    # overwrite: Ignition reruns after a failed first boot and finds its own file
+    - path: /etc/sysctl.d/99-afges-nonlocal-bind.conf
       mode: 0644
+      overwrite: true
       contents:
         inline: |
           net.ipv4.ip_nonlocal_bind = 1
 %{ if length(kernel_modules) > 0 ~}
     - path: /etc/modules-load.d/flatcar-vm.conf
       mode: 0644
+      overwrite: true
       contents:
         inline: |
 %{ for module in kernel_modules ~}
