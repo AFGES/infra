@@ -43,7 +43,7 @@ services:
     volumes:
       # config (encryption key fallback), binary data, nodes installed from the UI
       - data:/home/node/.n8n
-      - ./config/patch.js:/home/n8n/patch.js:ro
+      - ./config/patch.js:/patch.js:ro
       - ./config/public.pem:/etc/ssl/certs/custom-ca.pem:ro
     security_opt:
       - no-new-privileges:true
