@@ -93,10 +93,12 @@ services:
     restart: unless-stopped
     depends_on:
       - socket-proxy
-    env_file:
-      - env/newt.env
     environment:
+      CONFIG_FILE: /etc/newt/config.json
       DOCKER_SOCKET: tcp://socket-proxy:2375
+    # Site credentials written by Ignition (flatcar-vm module)
+    volumes:
+      - /etc/newt/config.json:/etc/newt/config.json:ro
     networks:
       - default
       - socket-proxy

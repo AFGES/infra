@@ -145,10 +145,11 @@ services:
     depends_on:
       - socket-proxy
     environment:
-      PANGOLIN_ENDPOINT: https://pangolin.afges.eu
-      NEWT_ID: ${NEWT_ID:?NEWT_ID missing in doco-cd env}
-      NEWT_SECRET: ${NEWT_SECRET:?NEWT_SECRET missing in doco-cd env}
+      CONFIG_FILE: /etc/newt/config.json
       DOCKER_SOCKET: tcp://socket-proxy:2375
+    # Site credentials written by Ignition (flatcar-vm module)
+    volumes:
+      - /etc/newt/config.json:/etc/newt/config.json:ro
     networks:
       - default
       - socket-proxy
