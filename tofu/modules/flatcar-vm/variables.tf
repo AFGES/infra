@@ -10,6 +10,17 @@ variable "sops_age_key" {
   default     = ""
 }
 
+variable "image_file_ids" {
+  description = "Map of Proxmox node names to the file ID of the Flatcar image on that node (see the flatcar-image module)"
+  type        = map(string)
+}
+
+variable "pangolin_ready" {
+  description = "Any value only known once Pangolin is reachable; Pangolin sites and VMs wait for it"
+  type        = string
+  default     = ""
+}
+
 variable "nodes" {
   description = "Map of node configurations. Each key becomes the node hostname, and each value contains the node's configuration."
   type = map(object({
@@ -23,7 +34,7 @@ variable "nodes" {
     ha_enabled         = optional(bool)
     internet_access    = optional(bool, false)
     kernel_modules     = optional(list(string), []) # Loaded at boot via /etc/modules-load.d
-    pangolin_site      = optional(bool, false) # Create a Pangolin site and pass its Newt credentials to doco-cd
+    pangolin_site      = optional(bool, false)      # Create a Pangolin site and write its Newt config to /etc/newt/config.json
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")

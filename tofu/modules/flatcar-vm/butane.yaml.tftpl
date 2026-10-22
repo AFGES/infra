@@ -50,13 +50,14 @@ storage:
           ${module}
 %{ endfor ~}
 %{ endif ~}
-    - path: /etc/default/doco-cd
+%{ if newt_config != "" ~}
+    # Pangolin site credentials, mounted read-only into the newt container
+    - path: /etc/newt/config.json
       mode: 0600
+      overwrite: true
       contents:
-        inline: |
-          %{~ for k, v in doco_cd_env }
-          ${k}=${v}
-          %{~ endfor }
+        inline: ${jsonencode(newt_config)}
+%{ endif ~}
 
 systemd:
   units:
@@ -77,8 +78,7 @@ systemd:
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v doco-cd.volume:/data \
           -e POLL_CONFIG="- url: https://github.com/AFGES/infra.git\n  target: %l\n  reference: main" \
-          -e PASS_ENV=true \
-          --env-file /etc/default/doco-cd \
+          %{if sops_age_key != ""} -e SOPS_AGE_KEY=${sops_age_key} %{endif}\
           ghcr.io/kimdre/doco-cd:latest
 
         [Install]

@@ -24,11 +24,6 @@ output "persistent_disks" {
   }
 }
 
-output "flatcar_version" {
-  description = "The Flatcar Linux version that was deployed"
-  value       = local.flatcar_metadata.version
-}
-
 output "ignition_file_id" {
   description = "Map of node names to the Proxmox file ID of their uploaded Ignition configuration"
   value       = { for k, f in proxmox_virtual_environment_file.flatcar_ignition : k => f.id }

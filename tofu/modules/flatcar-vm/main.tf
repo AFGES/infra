@@ -5,9 +5,8 @@ locals {
   ha_nodes         = { for name in data.proxmox_virtual_environment_nodes.available.names : name => null }
   ha_enabled_nodes = { for k, v in var.nodes : k => v if coalesce(v.ha_enabled, var.default_ha_enabled) }
 
-  # Effective Proxmox node per VM, and the set of nodes needing the Flatcar image
-  vm_node_names    = { for k, v in var.nodes : k => coalesce(v.node_name, var.default_node_name) }
-  image_node_names = toset(values(local.vm_node_names))
+  # Effective Proxmox node per VM
+  vm_node_names = { for k, v in var.nodes : k => coalesce(v.node_name, var.default_node_name) }
 
   # Compute effective network interfaces per node
   node_network_interfaces = {
@@ -19,52 +18,30 @@ locals {
     )
   }
 
-  flatcar_metadata = {
-    for match in regexall("([A-Z0-9_]+)=[\"']?([^\"'\n\r]+)[\"']?", data.http.flatcar_current_metadata.response_body) :
-    lower(trimprefix(match[0], "FLATCAR_")) => match[1]
+  # Newt config per node (written to /etc/newt/config.json), empty without a Pangolin site
+  newt_config = {
+    for k, v in var.nodes : k => v.pangolin_site ? jsonencode({
+      endpoint = "https://pangolin.afges.eu"
+      id       = pangolin_site.nodes[k].newt_id
+      secret   = pangolin_site.nodes[k].newt_secret
+    }) : ""
   }
-
-  # Extract SHA512 hash from DIGESTS file
-  # Format: "SHA512 (flatcar_production_qemu_image.img.bz2) = <hash>"
-  all_hex_strings = flatten(regexall("(?m)^([a-f0-9]+)", data.http.flatcar_digests.response_body))
-
-  # 2. Map them by their known lengths
-  flatcar_digests = {
-    md5    = [for s in local.all_hex_strings : s if length(s) == 32][0]
-    sha1   = [for s in local.all_hex_strings : s if length(s) == 40][0]
-    sha512 = [for s in local.all_hex_strings : s if length(s) == 128][0]
-  }
-
-  # Environment passed to doco-cd per node (written to /etc/default/doco-cd)
-  doco_cd_env = {
-    for k, v in var.nodes : k => merge(
-      var.sops_age_key != "" ? { SOPS_AGE_KEY = var.sops_age_key } : {},
-      # Empty for nodes without a Pangolin site
-      try({
-        NEWT_ID     = pangolin_site.nodes[k].newt_id
-        NEWT_SECRET = pangolin_site.nodes[k].newt_secret
-      }, {}),
-    )
-  }
-}
-
-# Fetch the current Flatcar Linux stable version
-data "http" "flatcar_current_metadata" {
-  url = "https://stable.release.flatcar-linux.net/amd64-usr/current/version.txt"
-}
-
-# Fetch DIGESTS file for hash verification
-data "http" "flatcar_digests" {
-  url = "https://stable.release.flatcar-linux.net/amd64-usr/${local.flatcar_metadata.version}/flatcar_production_proxmoxve_image.img.DIGESTS"
 }
 
 # Auto-discover Proxmox cluster nodes for HA configuration
 data "proxmox_virtual_environment_nodes" "available" {}
 
+# Ordering gate: carries var.pangolin_ready so sites and VMs wait for it
+resource "terraform_data" "pangolin_ready" {
+  input = var.pangolin_ready
+}
+
 # Pangolin site (Newt tunnel) per opted-in node
 resource "pangolin_site" "nodes" {
   for_each = { for k, v in var.nodes : k => v if v.pangolin_site }
   name     = each.key
+
+  depends_on = [terraform_data.pangolin_ready]
 }
 
 # Generate Ignition configuration from Butane template (one per node)
@@ -73,9 +50,10 @@ data "ct_config" "flatcar_ignition" {
 
   content = templatefile("${path.module}/butane.yaml.tftpl", {
     ssh_authorized_keys = jsonencode(var.ssh_authorized_keys)
-    persistent_disk     = each.value.persistent_disk != null
-    doco_cd_env         = local.doco_cd_env[each.key]
+    sops_age_key        = var.sops_age_key
     kernel_modules      = each.value.kernel_modules
+    persistent_disk     = each.value.persistent_disk != null
+    newt_config         = local.newt_config[each.key]
   })
   strict = true
 }
@@ -92,26 +70,6 @@ resource "proxmox_virtual_environment_file" "flatcar_ignition" {
     data      = data.ct_config.flatcar_ignition[each.key].rendered
     file_name = "flatcar-${each.key}.ign"
   }
-}
-
-# Download Flatcar Linux image with hash verification, on every node hosting a VM
-resource "proxmox_download_file" "flatcar_img" {
-  for_each = local.image_node_names
-
-  content_type       = "import"
-  datastore_id       = "local"
-  node_name          = each.key
-  url                = "https://stable.release.flatcar-linux.net/amd64-usr/${local.flatcar_metadata.version}/flatcar_production_proxmoxve_image.img"
-  file_name          = "flatcar-production-proxmoxve.qcow2"
-  overwrite          = false
-  checksum           = local.flatcar_digests.sha512
-  checksum_algorithm = "sha512"
-  verify             = true
-}
-
-moved {
-  from = proxmox_download_file.flatcar_img
-  to   = proxmox_download_file.flatcar_img["squirtle"]
 }
 
 # Create persistent disk containers for nodes that need them
@@ -135,7 +93,7 @@ module "vms" {
   source   = "../vm"
   for_each = var.nodes
 
-  depends_on = [module.persistent_disks]
+  depends_on = [module.persistent_disks, terraform_data.pangolin_ready]
 
   id                 = local.vm_ids[each.key]
   name               = each.key # Map key becomes the VM name directly
@@ -169,7 +127,7 @@ module "vms" {
 
   disk = {
     size         = 20
-    file_id      = proxmox_download_file.flatcar_img[local.vm_node_names[each.key]].id
+    file_id      = var.image_file_ids[local.vm_node_names[each.key]]
     datastore_id = "ceph"
   }
 
@@ -186,6 +144,12 @@ module "vms" {
   ] : []
 }
 
+# Purging a VM drops its HA entry; recreate HA with the VM
+resource "terraform_data" "ha_trigger" {
+  for_each = local.ha_enabled_nodes
+  input    = nonsensitive(sha256(data.ct_config.flatcar_ignition[each.key].rendered))
+}
+
 # Configure HA resources for enabled nodes
 resource "proxmox_haresource" "vms" {
   for_each = local.ha_enabled_nodes
@@ -196,4 +160,8 @@ resource "proxmox_haresource" "vms" {
   max_relocate = 2
 
   depends_on = [module.vms]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.ha_trigger[each.key]]
+  }
 }

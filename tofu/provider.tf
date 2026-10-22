@@ -1,5 +1,9 @@
 terraform {
   required_providers {
+    http = {
+      source  = "hashicorp/http"
+      version = ">= 3.0"
+    }
     ovh = {
       source  = "ovh/ovh"
       version = ">= 2.0"
@@ -24,8 +28,8 @@ terraform {
 }
 
 provider "ovh" {
-  endpoint  = "ovh-eu"
-  client_id = data.sops_file.secrets.data["ovh.client_id"]
+  endpoint      = "ovh-eu"
+  client_id     = data.sops_file.secrets.data["ovh.client_id"]
   client_secret = data.sops_file.secrets.data["ovh.client_secret"]
 }
 
@@ -48,7 +52,7 @@ provider "proxmox" {
   api_token = "terraform@pve!provider=${data.sops_file.secrets.data["proxmox_api_token"]}"
 
   # Evaluates to true if the host is an IPv4 address, and false if it is a domain name.
-  insecure  = can(regex("^(https?://)?(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?(/.*)?$", var.proxmox_endpoint))
+  insecure = can(regex("^(https?://)?(\\d{1,3}\\.){3}\\d{1,3}(:\\d+)?(/.*)?$", var.proxmox_endpoint))
 
   ssh {
     agent    = true

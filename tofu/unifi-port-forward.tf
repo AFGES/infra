@@ -3,7 +3,7 @@
 locals {
   # bpg reports one list per guest NIC (lo, eth0, eth1, docker bridges...); keep the LAN one
   reverse_proxy_lan_ip = one([
-    for ip in flatten(module.flatcar_nodes.vms["reverse-proxy"].ipv4_addresses) : ip
+    for ip in flatten(module.flatcar_edge.vms["reverse-proxy"].ipv4_addresses) : ip
     if startswith(ip, "192.168.1.")
   ])
 

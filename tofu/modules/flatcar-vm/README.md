@@ -9,10 +9,11 @@ For every entry in `var.nodes`, the module:
 
 1. Renders an Ignition config from `butane.yaml.tftpl` (via the `poseidon/ct` provider) and uploads it
    to the `local` datastore of the VM's Proxmox node as a snippet (`flatcar-<name>.ign`).
-2. Creates a VM (`../vm` module) from the latest **Flatcar stable** Proxmox image. The image is downloaded
-   once per Proxmox node hosting a VM and verified against the release SHA512 digest.
+2. Creates a VM (`../vm` module) from the Flatcar image given in `var.image_file_ids` for the VM's Proxmox
+   node (see the [`flatcar-image`](../flatcar-image/README.md) module).
 3. Optionally creates a persistent data disk (`../persistent-disk` module) on Ceph and attaches it.
-4. Optionally creates a [Pangolin](https://github.com/fosrl/pangolin) site and injects its Newt credentials into doco-cd.
+4. Optionally creates a [Pangolin](https://github.com/fosrl/pangolin) site and writes its Newt credentials
+   to the VM.
 5. Registers the VM as a Proxmox HA resource (unless disabled).
 
 ### Inside the VM
@@ -21,16 +22,27 @@ The Butane template configures:
 
 - the `core` user with `var.ssh_authorized_keys`;
 - the French console keymap (`KEYMAP=fr`);
-- for nodes with a `persistent_disk` only: `/dev/sdb` partitioned (label `docker-data`, XFS) and mounted on
-  `/var/lib/docker/volumes`, so Docker volumes survive VM rebuilds. Neither the partition table nor the
-  filesystem is wiped on reprovisioning. Without a persistent disk, volumes live on the OS disk and are lost
+- `net.ipv4.ip_nonlocal_bind = 1`, so Docker can bind ports to the `vnet0` IP before the interface is up;
+- the node's `kernel_modules`, loaded at boot via `/etc/modules-load.d/flatcar-vm.conf`;
+- for nodes with a `persistent_disk` only: the `scsi1` disk (by-id path) partitioned (label `docker-data`,
+  XFS) and mounted on `/var/lib/docker/volumes`, so Docker volumes survive VM rebuilds. Neither the partition
+  table nor the filesystem is wiped on reprovisioning. Without a persistent disk, volumes live on the OS disk and are lost
   on rebuild;
 - `doco-cd.service`, a container polling `https://github.com/AFGES/infra.git` (`main` branch) with
-  `target: %l`, i.e. the VM **hostname**. Each node therefore deploys `docker-compose/<node name>/`;
-- `/etc/default/doco-cd` (mode `0600`) passed to doco-cd as env file, with `PASS_ENV=true` so the values
-  are available to the Compose stacks:
-  - `SOPS_AGE_KEY` when `var.sops_age_key` is set (decrypts SOPS-encrypted files in the stack);
-  - `NEWT_ID` / `NEWT_SECRET` when the node has `pangolin_site = true`.
+  `target: %l`, i.e. the VM **hostname**. Each node therefore deploys `docker-compose/<node name>/`.
+  `SOPS_AGE_KEY` is passed to doco-cd when `var.sops_age_key` is set (decrypts SOPS-encrypted files in the
+  stack);
+- for nodes with `pangolin_site = true` only: `/etc/newt/config.json` (mode `0600`, root), the Newt config
+  `{"endpoint": "https://pangolin.afges.eu", "id": …, "secret": …}`. The stack's `newt` service mounts it
+  read-only and points `CONFIG_FILE` at it:
+
+  ```yaml
+  newt:
+    environment:
+      CONFIG_FILE: /etc/newt/config.json
+    volumes:
+      - /etc/newt/config.json:/etc/newt/config.json:ro
+  ```
 
 ## Conventions
 
@@ -42,7 +54,7 @@ The Butane template configures:
 | IPv4 on first NIC     | `10.20.0.<id>/24` (static, on `vnet0`)                       |
 | Additional NICs       | DHCP                                                         |
 | OS disk               | 20 GB on `ceph`, `scsi0`                                     |
-| Persistent disk       | on `ceph`, attached from `scsi1` (seen as `/dev/sdb`)        |
+| Persistent disk       | on `ceph`, attached from `scsi1`                             |
 
 `id` must be unique and between 1 and 999.
 
@@ -53,8 +65,10 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
 
 - VMs are **replaced** whenever their rendered Ignition config changes (`triggers_replace` is the config's
   SHA256). This includes changes to the template, SSH keys, SOPS key or Pangolin credentials.
-- The Flatcar version is resolved at plan time from the stable channel. The image is downloaded with
-  `overwrite = false`, so a new release does not replace existing VMs by itself; Flatcar updates itself in place.
+- Replacing a VM purges its HA entry on Proxmox, so the HA resource is replaced with it (`replace_triggered_by`
+  on the same config hash).
+- Pangolin sites and VMs wait for `var.pangolin_ready`. Pass a value that is only known once Pangolin answers
+  (e.g. the `id` of an `http` data source polling its API) to create them after the Pangolin host is up.
 - Persistent disks live in separate disk-container VMs and are not destroyed when a VM is rebuilt.
 
 ## Usage
@@ -65,6 +79,7 @@ module "flatcar_nodes" {
 
   ssh_authorized_keys = var.ssh_authorized_keys
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
+  image_file_ids      = module.flatcar_image.file_ids
 
   default_memory = 2
 
@@ -83,15 +98,14 @@ Then add the stack in `docker-compose/reverse-proxy/` and push to `main`.
 
 ## Requirements
 
-| Provider            | Version     |
-| ------------------- | ----------- |
-| `bpg/proxmox`       | `>= 0.98.0` |
-| `hashicorp/http`    | `>= 3.0`    |
-| `poseidon/ct`       | `>= 0.13.0` |
-| `stackopshq/pangolin` | `~> 1.5`  |
+| Provider              | Version     |
+| --------------------- | ----------- |
+| `bpg/proxmox`         | `>= 0.98.0` |
+| `poseidon/ct`         | `>= 0.13.0` |
+| `stackopshq/pangolin` | `~> 1.5`    |
 
-The Proxmox cluster must provide a `local` datastore accepting `snippets` and `import` content, a `ceph`
-datastore, and the `vnet0` / `vmbr0` bridges.
+The Proxmox cluster must provide a `local` datastore accepting `snippets` content, a `ceph` datastore, and
+the `vnet0` / `vmbr0` bridges.
 
 ## Inputs
 
@@ -99,6 +113,8 @@ datastore, and the `vnet0` / `vmbr0` bridges.
 | ---------------------------- | -------------- | ------------ | ------------------------------------------------------------------ |
 | `ssh_authorized_keys`        | `list(string)` | required     | SSH public keys for the `core` user                                |
 | `sops_age_key`               | `string`       | `""`         | Age key given to doco-cd as `SOPS_AGE_KEY` (sensitive)             |
+| `image_file_ids`             | `map(string)`  | required     | Proxmox node name to Flatcar image file ID (`flatcar-image` output) |
+| `pangolin_ready`             | `string`       | `""`         | Pangolin sites and VMs wait for this value                         |
 | `nodes`                      | `map(object)`  | required     | Node definitions, see below                                        |
 | `default_cpu_cores`          | `number`       | `2`          | CPU cores                                                          |
 | `default_memory`             | `number`       | `2`          | Memory in GB                                                       |
@@ -124,7 +140,8 @@ Every optional attribute without its own default falls back to the matching `def
 | `start_on_provision` | `bool`         | —       | Start after creation                                                |
 | `ha_enabled`         | `bool`         | —       | Register as HA resource                                             |
 | `internet_access`    | `bool`         | `false` | Add a DHCP interface on `vmbr0`                                     |
-| `pangolin_site`      | `bool`         | `false` | Create a Pangolin site and pass `NEWT_ID` / `NEWT_SECRET` to doco-cd |
+| `kernel_modules`     | `list(string)` | `[]`    | Kernel modules loaded at boot                                       |
+| `pangolin_site`      | `bool`         | `false` | Create a Pangolin site and write `/etc/newt/config.json`            |
 | `persistent_disk`    | `object`       | `null`  | `{ size = optional(number), file_format = optional(string, "raw") }` |
 | `network_interfaces` | `list(object)` | `null`  | `{ bridge, model = "virtio", vlan_id, mac_address }`, overrides `internet_access` |
 
@@ -135,6 +152,5 @@ Every optional attribute without its own default falls back to the matching `def
 | `vm_ids`           | Node name to VM ID                                            |
 | `vms`              | Node name to `{ vm_id, name, ipv4_addresses }`                |
 | `persistent_disks` | Node name to `{ vm_id, disks }` for nodes with a data disk    |
-| `flatcar_version`  | Deployed Flatcar stable version                               |
 | `ignition_file_id` | Node name to Proxmox file ID of its Ignition config           |
 | `pangolin_sites`   | Node name to `{ id, nice_id, newt_id }` (no secrets)          |
