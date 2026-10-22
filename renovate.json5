@@ -53,6 +53,11 @@
       groupName: "password-manager stack",
       semanticCommitScope: "password-manager",
     },
+    {
+      matchFileNames: ["docker-compose/n8n/**"],
+      groupName: "n8n stack",
+      semanticCommitScope: "n8n",
+    },
     // Tofu providers together
     {
       matchManagers: ["terraform"],
