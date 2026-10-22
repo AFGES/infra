@@ -44,7 +44,7 @@ const LicenseManager = getLicenseManager();
 if (LicenseManager) {
   try {
     let certPem = process.env.N8N_LICENSE_ISSUER_CERT;
-    const certPath = process.env.N8N_LICENSE_ISSUER_CERT_PATH || '/etc/ssl/certs/license-ca.pem';
+    const certPath = process.env.N8N_LICENSE_ISSUER_CERT_PATH || '/etc/ssl/certs/custom-ca.pem';
 
     if (!certPem && fs.existsSync(certPath)) {
       certPem = fs.readFileSync(certPath, 'utf8');
