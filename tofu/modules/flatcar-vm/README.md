@@ -71,6 +71,56 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
   (e.g. the `id` of an `http` data source polling its API) to create them after the Pangolin host is up.
 - Persistent disks live in separate disk-container VMs and are not destroyed when a VM is rebuilt.
 
+## Pangolin outage and disaster recovery
+
+In the root configuration, reverse-proxy (`module.flatcar_edge`) serves the Pangolin API that creates every
+site, including its own. `module.flatcar_nodes` waits for `data.http.pangolin_ready` (60 × 10 s, about 10 min,
+then the postcondition fails). Two root variables work around this:
+
+| Variable             | Default | Effect                                                                               |
+| -------------------- | ------- | ------------------------------------------------------------------------------------ |
+| `pangolin_gate`      | `true`  | `false` drops `data.http.pangolin_ready`; `flatcar_nodes` gets `pangolin_ready = ""` |
+| `pangolin_bootstrap` | `false` | `true` builds reverse-proxy without a Pangolin site (no `/etc/newt/config.json`)     |
+
+The stackopshq/pangolin provider probes `GET /v1/org/<org>` when it is configured. If Pangolin is unreachable
+it only warns, but a rejected API key is an error. `PANGOLIN_SKIP_HEALTH_PROBE=1` skips the probe.
+
+### Pangolin down, nothing to change
+
+When the edge VM is unchanged, the gate is read at plan time, so every plan waits about 10 min and then fails.
+Plan without it. Skip refresh so the existing `pangolin_site` resources are not read:
+
+```sh
+tofu plan -var pangolin_gate=false -refresh=false
+```
+
+`-target` on resources outside Pangolin works too.
+
+### Rebuilding reverse-proxy from scratch
+
+Use this when the Pangolin data on reverse-proxy's persistent disk (disk container 9001) is lost.
+`pangolin_site["reverse-proxy"]` then cannot be recreated, and since its Newt config is part of the Ignition
+config, the VM cannot be rebuilt either.
+
+1. Bring Pangolin up without a site for reverse-proxy, using the Proxmox IP endpoint (`pve.afges.eu` goes
+   through Pangolin):
+
+   ```sh
+   PANGOLIN_SKIP_HEALTH_PROBE=1 tofu apply -var pangolin_bootstrap=true \
+     -var proxmox_endpoint=https://192.168.1.106:8006/ \
+     -target=module.flatcar_edge -target=unifi_port_forward.reverse_proxy
+   ```
+
+   The targeted graph contains no `pangolin_site` instance and no gate, so it makes no Pangolin API call.
+   reverse-proxy's `newt` service has no config and restarts in a loop. This is expected.
+2. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
+   store it as `pangolin_api_key` in `secrets.yaml`.
+3. Apply again without `pangolin_bootstrap` (keep the Proxmox IP endpoint). This creates a fresh
+   `reverse-proxy` site and rebuilds reverse-proxy once more with its Newt config. The other nodes' sites
+   were lost with the old Pangolin. They must be recreated, which rebuilds those VMs. If refreshing them
+   fails, remove them from the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`).
+4. In the Pangolin UI, bind the UI-managed resources (`pve.afges.eu`) to the new sites again.
+
 ## Usage
 
 ```hcl

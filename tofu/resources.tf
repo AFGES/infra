@@ -65,7 +65,8 @@ module "flatcar_edge" {
         { bridge = "vnet0", mac_address = "BC:24:11:E1:02:E2" },
         { bridge = "vmbr0", mac_address = "BC:24:11:8A:D1:3B" },
       ]
-      pangolin_site = true
+      # No site in bootstrap mode: the site lives in the Pangolin this VM serves
+      pangolin_site = !var.pangolin_bootstrap
     }
   }
 }
@@ -73,13 +74,16 @@ module "flatcar_edge" {
 # Pangolin must answer again before the other nodes' sites are created
 # The forwards follow the edge VM's IP, so they already wait for it; depending on
 # module.flatcar_edge as a whole creates a cycle with its HA replacement
+# var.pangolin_gate = false skips it, so plans don't wait ~10 min while Pangolin is down
 data "http" "pangolin_ready" {
+  count = var.pangolin_gate ? 1 : 0
+
   url                = "https://api.pangolin.afges.eu/v1/"
   request_timeout_ms = 5000
   depends_on         = [unifi_port_forward.reverse_proxy]
 
   retry {
-    attempts     = 120
+    attempts     = 60
     min_delay_ms = 10000
     max_delay_ms = 10000
   }
@@ -98,7 +102,7 @@ module "flatcar_nodes" {
   ssh_authorized_keys = var.ssh_authorized_keys
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
   image_file_ids      = module.flatcar_image.file_ids
-  pangolin_ready      = data.http.pangolin_ready.id
+  pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory
