@@ -32,7 +32,7 @@ services:
       - backend
 
   n8n:
-    image: docker.io/n8nio/n8n:2.44.5@sha256:bcb4e4917141f4a5249c8eadf2776d347f4c2ede75adfbbc82064826af9a8ead
+    image: docker.io/n8nio/n8n:2.44.6@sha256:d02752c6ab446ae9db8deec2f9cc887c378f77cdcad31650814df936b7386dfb
     container_name: n8n
     restart: unless-stopped
     depends_on:
