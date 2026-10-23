@@ -1,0 +1,2 @@
+name: registry-cache
+working_dir: docker-compose/registry-cache

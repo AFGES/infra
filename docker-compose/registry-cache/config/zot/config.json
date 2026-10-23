@@ -1,0 +1,97 @@
+{
+  "distSpecVersion": "1.1.1",
+  "storage": {
+    "rootDirectory": "/var/lib/registry",
+    "dedupe": true,
+    "gc": true,
+    "retention": {
+      "delay": "24h",
+      "policies": [
+        {
+          "repositories": [
+            "**"
+          ],
+          "deleteReferrers": true,
+          "deleteUntagged": true,
+          "keepTags": [
+            {
+              "pulledWithin": "720h"
+            }
+          ],
+          "keepUntagged": {
+            "pulledWithin": "720h"
+          }
+        }
+      ]
+    }
+  },
+  "http": {
+    "address": "0.0.0.0",
+    "port": "5000",
+    "compat": [
+      "docker2s2"
+    ],
+    "accessControl": {
+      "repositories": {
+        "**": {
+          "anonymousPolicy": [
+            "read"
+          ]
+        }
+      },
+      "metrics": {
+        "anonymousPolicy": [
+          "read"
+        ]
+      }
+    }
+  },
+  "log": {
+    "level": "info"
+  },
+  "extensions": {
+    "metrics": {
+      "enable": true,
+      "prometheus": {
+        "path": "/metrics"
+      }
+    },
+    "search": {
+      "enable": true
+    },
+    "ui": {
+      "enable": true
+    },
+    "sync": {
+      "enable": true,
+      "registries": [
+        {
+          "urls": [
+            "https://index.docker.io"
+          ],
+          "onDemand": true,
+          "tlsVerify": true,
+          "content": [
+            {
+              "prefix": "**",
+              "destination": "/docker.io"
+            }
+          ]
+        },
+        {
+          "urls": [
+            "https://ghcr.io"
+          ],
+          "onDemand": true,
+          "tlsVerify": true,
+          "content": [
+            {
+              "prefix": "**",
+              "destination": "/ghcr.io"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

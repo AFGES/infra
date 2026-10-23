@@ -58,6 +58,11 @@
       groupName: "n8n stack",
       semanticCommitScope: "n8n",
     },
+    {
+      matchFileNames: ["docker-compose/registry-cache/**"],
+      groupName: "registry-cache stack",
+      semanticCommitScope: "registry-cache",
+    },
     // Tofu providers together
     {
       matchManagers: ["terraform"],
