@@ -6,3 +6,6 @@
   ansible.builtin.include_role:
       name: proxmox-common
       tasks_from: no-nag.yml
+
+- name: Include LLDP tasks
+  ansible.builtin.include_tasks: lldp.yml

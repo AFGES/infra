@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+---
+- name: Install lldpd
+  ansible.builtin.apt:
+      name: lldpd
+      state: present
+      update_cache: yes
+
+- name: Configure lldpd
+  ansible.builtin.copy:
+      content: |
+          configure lldp portidsubtype ifname
+          configure system interface pattern '{{ pve_initial_lldp_interface_pattern }}'
+      dest: /etc/lldpd.d/afges.conf
+      owner: root
+      group: root
+      mode: "0644"
+  notify: Restart lldpd
+
+- name: Enable and start lldpd
+  ansible.builtin.systemd:
+      name: lldpd
+      enabled: true
+      state: started
+  ignore_errors: "{{ ansible_check_mode }}"
