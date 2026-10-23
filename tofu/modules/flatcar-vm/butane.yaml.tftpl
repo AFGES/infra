@@ -58,6 +58,28 @@ storage:
       contents:
         inline: ${jsonencode(newt_config)}
 %{ endif ~}
+%{ if registry_cache != null ~}
+    # containerd image store: only with it does dockerd read certs.d/<registry>/hosts.toml
+    - path: /etc/docker/daemon.json
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          {"features": {"containerd-snapshotter": true}}
+%{ for registry in registry_cache.registries ~}
+    # Pull through the registry cache, straight from the registry when the cache fails
+    - path: /etc/docker/certs.d/${registry}/hosts.toml
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          server = "${registry == "docker.io" ? "https://registry-1.docker.io" : "https://${registry}"}"
+
+          [host."${registry_cache.url}/v2/${registry}"]
+            capabilities = ["pull", "resolve"]
+            override_path = true
+%{ endfor ~}
+%{ endif ~}
 
 systemd:
   units:
@@ -74,6 +96,10 @@ systemd:
         [Service]
         Type=oneshot
         RemainAfterExit=yes
+%{ if try(registry_cache.wait, false) ~}
+        # First boot only: wait for the registry cache so the first pulls fill it; pull upstream after 5 min
+        ExecStartPre=-/usr/bin/sh -c '[ -e /var/lib/registry-cache-waited ] || { /usr/bin/timeout 300 sh -c "until curl -sf ${registry_cache.url}/v2/ >/dev/null; do sleep 5; done"; touch /var/lib/registry-cache-waited; }'
+%{ endif ~}
         ExecStart=/usr/bin/docker run --name doco-cd --rm --privileged \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v doco-cd.volume:/data \

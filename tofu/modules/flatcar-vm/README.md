@@ -44,6 +44,8 @@ The Butane template configures:
       - /etc/newt/config.json:/etc/newt/config.json:ro
   ```
 
+- when `var.registry_cache` is set: the registry cache, see [Registry cache](#registry-cache).
+
 ## Conventions
 
 | Item                  | Value                                                        |
@@ -71,15 +73,36 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
   (e.g. the `id` of an `http` data source polling its API) to create them after the Pangolin host is up.
 - Persistent disks live in separate disk-container VMs and are not destroyed when a VM is rebuilt.
 
+## Registry cache
+
+`var.registry_cache` makes Docker pull through a pull-through cache (the Zot stack in
+`docker-compose/registry-cache/`) instead of hitting Docker Hub and ghcr.io from every VM:
+
+- `/etc/docker/daemon.json` enables the containerd image store. Only with it does dockerd read
+  `/etc/docker/certs.d/<registry>/hosts.toml`; `registry-mirrors` would cover `docker.io` only.
+- one `/etc/docker/certs.d/<registry>/hosts.toml` per entry of `registries`, pointing at
+  `<url>/v2/<registry>` (`override_path`). containerd tries the cache first and falls back to the registry
+  itself when the cache fails, so image references in the compose files stay unchanged.
+- with `wait = true` (default): on first boot only, `doco-cd.service` waits up to 5 min for `<url>/v2/` to
+  answer, so the first pulls after a rebuild fill the cache. On timeout doco-cd starts anyway and pulls
+  upstream. The marker `/var/lib/registry-cache-waited` skips the wait on later boots; a rebuild starts from
+  a fresh OS disk, so it waits again.
+
+Do not set it on the module call hosting the cache: that VM would wait 5 min for itself. Set `wait = false`
+on any call the cache depends on: the cache VM waits for Pangolin (`pangolin_ready`), so the edge hosting
+Pangolin uses the cache without waiting for it, and pulls upstream while the cache is missing.
+
 ## Pangolin outage and disaster recovery
 
 In the root configuration, reverse-proxy (`module.flatcar_edge`) serves the Pangolin API that creates every
-site, including its own. `module.flatcar_nodes` waits for `data.http.pangolin_ready` (60 × 10 s, about 10 min,
-then the postcondition fails). Two root variables work around this:
+site, including its own. `module.flatcar_nodes` and `module.flatcar_registry` wait for
+`data.http.pangolin_ready` (60 × 10 s, about 10 min, then the postcondition fails). reverse-proxy uses the
+registry cache with `wait = false`, so it never waits for the cache VM that waits for Pangolin. Two root
+variables work around the gate:
 
 | Variable             | Default | Effect                                                                               |
 | -------------------- | ------- | ------------------------------------------------------------------------------------ |
-| `pangolin_gate`      | `true`  | `false` drops `data.http.pangolin_ready`; `flatcar_nodes` gets `pangolin_ready = ""` |
+| `pangolin_gate`      | `true`  | `false` drops `data.http.pangolin_ready`; `flatcar_nodes` and `flatcar_registry` get `pangolin_ready = ""` |
 | `pangolin_bootstrap` | `false` | `true` builds reverse-proxy without a Pangolin site (no `/etc/newt/config.json`)     |
 
 The stackopshq/pangolin provider probes `GET /v1/org/<org>` when it is configured. If Pangolin is unreachable
@@ -193,6 +216,7 @@ the `vnet0` / `vmbr0` bridges.
 | `sops_age_key`               | `string`       | `""`         | Age key given to doco-cd as `SOPS_AGE_KEY` (sensitive)             |
 | `image_file_ids`             | `map(string)`  | required     | Proxmox node name to Flatcar image file ID (`flatcar-image` output) |
 | `pangolin_ready`             | `string`       | `""`         | Pangolin sites and VMs wait for this value                         |
+| `registry_cache`             | `object`       | `null`       | `{ url, registries, wait = true }`, see [Registry cache](#registry-cache) |
 | `nodes`                      | `map(object)`  | required     | Node definitions, see below                                        |
 | `default_cpu_cores`          | `number`       | `2`          | CPU cores                                                          |
 | `default_memory`             | `number`       | `2`          | Memory in GB                                                       |

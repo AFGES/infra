@@ -54,6 +54,7 @@ data "ct_config" "flatcar_ignition" {
     kernel_modules      = each.value.kernel_modules
     persistent_disk     = each.value.persistent_disk != null
     newt_config         = local.newt_config[each.key]
+    registry_cache      = var.registry_cache
   })
   strict = true
 }

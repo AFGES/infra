@@ -26,6 +26,12 @@ locals {
     machine_type       = "q35"
     ha_enabled         = true
   }
+
+  # Zot pull-through cache on registry-cache (vnet0 only)
+  registry_cache = {
+    url        = "http://10.20.0.6:5000"
+    registries = ["docker.io", "ghcr.io"]
+  }
 }
 
 # Flatcar image, downloaded once per Proxmox node hosting a VM
@@ -41,6 +47,8 @@ module "flatcar_edge" {
   ssh_authorized_keys = var.ssh_authorized_keys
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
   image_file_ids      = module.flatcar_image.file_ids
+  # The cache waits for Pangolin, so the edge must not wait for the cache; containerd falls back to upstream
+  registry_cache = merge(local.registry_cache, { wait = false })
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory
@@ -67,6 +75,37 @@ module "flatcar_edge" {
       ]
       # No site in bootstrap mode: the site lives in the Pangolin this VM serves
       pangolin_site = !var.pangolin_bootstrap
+    }
+  }
+}
+
+# Registry cache: own call so it does not wait for itself at boot (no registry_cache)
+# Waits for Pangolin like the other nodes (its own site); the edge does not wait for it
+module "flatcar_registry" {
+  source = "./modules/flatcar-vm"
+
+  ssh_authorized_keys = var.ssh_authorized_keys
+  sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
+  image_file_ids      = module.flatcar_image.file_ids
+  pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
+
+  default_cpu_cores          = local.flatcar_defaults.cpu_cores
+  default_memory             = local.flatcar_defaults.memory
+  default_disk_size          = local.flatcar_defaults.disk_size
+  default_node_name          = local.flatcar_defaults.node_name
+  default_start_on_boot      = local.flatcar_defaults.start_on_boot
+  default_start_on_provision = local.flatcar_defaults.start_on_provision
+  default_machine_type       = local.flatcar_defaults.machine_type
+  default_ha_enabled         = local.flatcar_defaults.ha_enabled
+
+  nodes = {
+    registry-cache = {
+      id = 6
+      persistent_disk = {
+        size = 50
+      }
+      internet_access = true
+      pangolin_site   = true
     }
   }
 }
@@ -103,6 +142,7 @@ module "flatcar_nodes" {
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
   image_file_ids      = module.flatcar_image.file_ids
   pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
+  registry_cache      = local.registry_cache
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory

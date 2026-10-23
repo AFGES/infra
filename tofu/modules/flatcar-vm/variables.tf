@@ -21,6 +21,16 @@ variable "pangolin_ready" {
   default     = ""
 }
 
+variable "registry_cache" {
+  description = "Pull-through registry cache (Zot) the VMs pull through, falling back to upstream; null disables it"
+  type = object({
+    url        = string               # Base URL, e.g. http://10.20.0.6:5000
+    registries = list(string)         # Upstream registry hosts, each served by the cache under /v2/<registry>
+    wait       = optional(bool, true) # First boot: doco-cd waits up to 5 min for the cache; false when the cache depends on this VM
+  })
+  default = null
+}
+
 variable "nodes" {
   description = "Map of node configurations. Each key becomes the node hostname, and each value contains the node's configuration."
   type = map(object({
