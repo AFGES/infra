@@ -18,19 +18,13 @@ locals {
     )
   }
 
-  # Newt config per node, empty without a Pangolin site: /etc/newt/newt.env for the newt sysext,
-  # /etc/newt/config.json for the newt container
+  # Newt config per node (written to /etc/newt/config.json), empty without a Pangolin site
   newt_config = {
-    for k, v in var.nodes : k => !v.pangolin_site ? "" : var.sysexts ? join("", [
-      "PANGOLIN_ENDPOINT=https://pangolin.afges.eu\n",
-      "NEWT_ID=${pangolin_site.nodes[k].newt_id}\n",
-      "NEWT_SECRET=${pangolin_site.nodes[k].newt_secret}\n",
-      "DOCKER_SOCKET=unix:///var/run/docker.sock\n",
-      ]) : jsonencode({
+    for k, v in var.nodes : k => v.pangolin_site ? jsonencode({
       endpoint = "https://pangolin.afges.eu"
       id       = pangolin_site.nodes[k].newt_id
       secret   = pangolin_site.nodes[k].newt_secret
-    })
+    }) : ""
   }
 }
 
@@ -61,8 +55,6 @@ data "ct_config" "flatcar_ignition" {
     persistent_disk     = each.value.persistent_disk != null
     newt_config         = local.newt_config[each.key]
     registry_cache      = var.registry_cache
-    sysexts             = var.sysexts
-    node_name           = each.key
   })
   strict = true
 }

@@ -50,7 +50,7 @@ storage:
           ${module}
 %{ endfor ~}
 %{ endif ~}
-%{ if newt_config != "" && !sysexts ~}
+%{ if newt_config != "" ~}
     # Pangolin site credentials, mounted read-only into the newt container
     - path: /etc/newt/config.json
       mode: 0600
@@ -80,114 +80,11 @@ storage:
             override_path = true
 %{ endfor ~}
 %{ endif ~}
-%{ if sysexts ~}
-    # doco-cd and newt run from sysexts (AFGES sysext-bakery), updated by systemd-sysupdate
-%{ for name in ["doco-cd", "newt"] ~}
-    - path: /etc/sysupdate.${name}.d/${name}.conf
-      mode: 0644
-      contents:
-        source: https://afges.github.io/sysext-bakery/extensions/${name}.conf
-%{ endfor ~}
-    # doco-cd deploys docker-compose/<node name>/ from main
-    - path: /etc/doco-cd/poll-config.yaml
-      mode: 0600
-      overwrite: true
-      contents:
-        inline: |
-          - url: https://github.com/AFGES/infra.git
-            target: ${node_name}
-            reference: main
-    # HTTP_PORT: traefik owns :80 on reverse-proxy; doco-cd only polls, nothing calls this port
-    - path: /etc/doco-cd/doco-cd.env
-      mode: 0600
-      overwrite: true
-      contents:
-        inline: |
-          HTTP_PORT=8080
-          POLL_CONFIG_FILE=/etc/doco-cd/poll-config.yaml
-%{ if sops_age_key != "" ~}
-          SOPS_AGE_KEY=${sops_age_key}
-%{ endif ~}
-%{ if newt_config != "" ~}
-    # Pangolin site credentials and Docker socket for label discovery
-    - path: /etc/newt/newt.env
-      mode: 0600
-      overwrite: true
-      contents:
-        inline: ${jsonencode(newt_config)}
-    # Docker integration is disabled when the socket is missing at start
-    - path: /etc/systemd/system/newt.service.d/docker.conf
-      mode: 0644
-      overwrite: true
-      contents:
-        inline: |
-          [Unit]
-          Wants=docker.service
-          After=docker.service
-%{ endif ~}
-%{ if try(registry_cache.wait, false) ~}
-    # First boot only: wait for the registry cache so the first pulls fill it; pull upstream after 5 min
-    - path: /etc/systemd/system/doco-cd.service.d/registry-cache.conf
-      mode: 0644
-      overwrite: true
-      contents:
-        inline: |
-          [Service]
-          TimeoutStartSec=6min
-          ExecStartPre=-/usr/bin/sh -c '[ -e /var/lib/registry-cache-waited ] || { /usr/bin/timeout 300 sh -c "until curl -sf ${registry_cache.url}/v2/ >/dev/null; do sleep 5; done"; touch /var/lib/registry-cache-waited; }'
-%{ endif ~}
-  directories:
-    # systemd-sysupdate targets: the images and their /etc/extensions/<name>.raw symlinks
-    - path: /etc/extensions
-      mode: 0755
-%{ for name in ["doco-cd", "newt"] ~}
-    - path: /opt/extensions/${name}
-      mode: 0755
-%{ endfor ~}
-%{ endif ~}
 
 systemd:
   units:
     - name: docker.service
       enabled: true
-%{ if sysexts ~}
-    # Install the latest doco-cd and newt sysexts when missing (first boot), then merge them; the
-    # sysexts reload systemd on merge, which starts the services they ship
-    - name: sysext-bootstrap.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=Install the latest doco-cd and newt sysexts
-        Wants=network-online.target
-        After=network-online.target
-
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-        Restart=on-failure
-        RestartSec=10
-%{ for name in ["doco-cd", "newt"] ~}
-        ExecStart=/usr/bin/sh -c '[ -e /etc/extensions/${name}.raw ] || /usr/lib/systemd/systemd-sysupdate -C ${name} update'
-%{ endfor ~}
-        ExecStart=/usr/bin/systemd-sysext refresh
-
-        [Install]
-        WantedBy=multi-user.target
-    - name: systemd-sysupdate.timer
-      enabled: true
-    # On a new version: refresh the merged sysexts and restart the service, no reboot
-    - name: systemd-sysupdate.service
-      dropins:
-%{ for name in ["doco-cd", "newt"] ~}
-        - name: ${name}.conf
-          contents: |
-            [Service]
-            ExecStartPre=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/${name}.raw > /tmp/${name}"
-            ExecStartPre=/usr/lib/systemd/systemd-sysupdate -C ${name} update
-            ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/${name}.raw > /tmp/${name}-new"
-            ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /tmp/${name} /tmp/${name}-new; then systemd-sysext refresh && systemctl restart ${name}.service; fi"
-%{ endfor ~}
-%{ else ~}
     - name: doco-cd.service
       enabled: true
       contents: |
@@ -212,4 +109,3 @@ systemd:
 
         [Install]
         WantedBy=multi-user.target
-%{ endif ~}

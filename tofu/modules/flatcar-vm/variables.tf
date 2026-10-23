@@ -31,12 +31,6 @@ variable "registry_cache" {
   default = null
 }
 
-variable "sysexts" {
-  description = "Run doco-cd and newt from the latest AFGES sysext-bakery sysexts; false runs both as containers"
-  type        = bool
-  default     = false
-}
-
 variable "nodes" {
   description = "Map of node configurations. Each key becomes the node hostname, and each value contains the node's configuration."
   type = map(object({

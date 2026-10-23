@@ -21,10 +21,42 @@ services:
       - "pangolin.public-resources.zot.full-domain=registry.afges.eu"
       - "pangolin.public-resources.zot.auth.sso-enabled=true"
       - "pangolin.public-resources.zot.targets[0].method=http"
+      - "pangolin.public-resources.zot.targets[0].hostname=zot"
       - "pangolin.public-resources.zot.targets[0].port=5000"
+      - "pangolin.public-resources.zot.targets[0].healthcheck.hostname=zot"
       - "pangolin.public-resources.zot.targets[0].healthcheck.port=5000"
       - "pangolin.public-resources.zot.targets[0].healthcheck.path=/livez"
       - "pangolin.public-resources.zot.targets[0].healthcheck.status=200"
+
+  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
+  socket-proxy:
+    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      EVENTS: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - socket-proxy
+
+  # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
+  newt:
+    image: docker.io/fosrl/newt:latest@sha256:0189c8287058b800cca825590e4c39946b3815344ca48678dd0b96616d639319
+    container_name: newt
+    restart: unless-stopped
+    depends_on:
+      - socket-proxy
+    environment:
+      CONFIG_FILE: /etc/newt/config.json
+      DOCKER_SOCKET: tcp://socket-proxy:2375
+    # Site credentials written by Ignition (flatcar-vm module)
+    volumes:
+      - /etc/newt/config.json:/etc/newt/config.json:ro
+    networks:
+      - default
+      - socket-proxy
 
 volumes:
   zotdata: {}
@@ -33,3 +65,7 @@ networks:
   default:
     driver: bridge
     name: registry-cache
+  socket-proxy:
+    driver: bridge
+    name: registry-cache-socket-proxy
+    internal: true
