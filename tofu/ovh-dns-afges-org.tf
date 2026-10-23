@@ -35,6 +35,14 @@ resource "ovh_domain_zone_record" "txt_saml_direct_fed_auth" {
   target    = "directFedAuthUrl=https://accounts.google.com/o/saml2/idp?idpid=C04bvk0di"
 }
 
+# GitHub organization domain verification (AFGES)
+resource "ovh_domain_zone_record" "txt_github_challenge_afges" {
+  zone      = "afges.org"
+  subdomain = "_gh-AFGES-o"
+  fieldtype = "TXT"
+  target    = "94723244ff"
+}
+
 # Google Postmaster Tools
 resource "ovh_domain_zone_record" "txt_google_postmaster_tools_verification" {
   zone      = "afges.org"
