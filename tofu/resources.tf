@@ -27,9 +27,6 @@ locals {
     ha_enabled         = true
   }
 
-  # doco-cd and newt from the latest AFGES sysext-bakery sysexts, kept up to date by systemd-sysupdate
-  sysexts = true
-
   # Zot pull-through cache on registry-cache (vnet0 only)
   registry_cache = {
     url        = "http://10.20.0.6:5000"
@@ -52,7 +49,6 @@ module "flatcar_edge" {
   image_file_ids      = module.flatcar_image.file_ids
   # The cache waits for Pangolin, so the edge must not wait for the cache; containerd falls back to upstream
   registry_cache = merge(local.registry_cache, { wait = false })
-  sysexts        = local.sysexts
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory
@@ -92,7 +88,6 @@ module "flatcar_registry" {
   sops_age_key        = data.sops_file.secrets.data["sops_age_key"]
   image_file_ids      = module.flatcar_image.file_ids
   pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
-  sysexts             = local.sysexts
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory
@@ -148,7 +143,6 @@ module "flatcar_nodes" {
   image_file_ids      = module.flatcar_image.file_ids
   pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
   registry_cache      = local.registry_cache
-  sysexts             = local.sysexts
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory

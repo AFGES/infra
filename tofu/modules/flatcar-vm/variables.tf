@@ -31,12 +31,6 @@ variable "registry_cache" {
   default = null
 }
 
-variable "sysexts" {
-  description = "Run doco-cd and newt from the latest AFGES sysext-bakery sysexts; false runs both as containers"
-  type        = bool
-  default     = false
-}
-
 variable "nodes" {
   description = "Map of node configurations. Each key becomes the node hostname, and each value contains the node's configuration."
   type = map(object({
@@ -50,7 +44,7 @@ variable "nodes" {
     ha_enabled         = optional(bool)
     internet_access    = optional(bool, false)
     kernel_modules     = optional(list(string), []) # Loaded at boot via /etc/modules-load.d
-    pangolin_site      = optional(bool, false)      # Create a Pangolin site and write its Newt config to /etc/newt/config.json
+    pangolin_site      = optional(bool, false)      # Create a Pangolin site and write its Newt config to /etc/newt/newt.env
     persistent_disk = optional(object({
       size        = optional(number)
       file_format = optional(string, "raw")

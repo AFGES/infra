@@ -50,14 +50,6 @@ storage:
           ${module}
 %{ endfor ~}
 %{ endif ~}
-%{ if newt_config != "" && !sysexts ~}
-    # Pangolin site credentials, mounted read-only into the newt container
-    - path: /etc/newt/config.json
-      mode: 0600
-      overwrite: true
-      contents:
-        inline: ${jsonencode(newt_config)}
-%{ endif ~}
 %{ if registry_cache != null ~}
     # containerd image store: only with it does dockerd read certs.d/<registry>/hosts.toml
     - path: /etc/docker/daemon.json
@@ -80,7 +72,6 @@ storage:
             override_path = true
 %{ endfor ~}
 %{ endif ~}
-%{ if sysexts ~}
     # doco-cd and newt run from sysexts (AFGES sysext-bakery), updated by systemd-sysupdate
 %{ for name in ["doco-cd", "newt"] ~}
     - path: /etc/sysupdate.${name}.d/${name}.conf
@@ -144,13 +135,11 @@ storage:
     - path: /opt/extensions/${name}
       mode: 0755
 %{ endfor ~}
-%{ endif ~}
 
 systemd:
   units:
     - name: docker.service
       enabled: true
-%{ if sysexts ~}
     # Install the latest doco-cd and newt sysexts when missing (first boot), then merge them; the
     # sysexts reload systemd on merge, which starts the services they ship
     - name: sysext-bootstrap.service
@@ -187,29 +176,3 @@ systemd:
             ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/${name}.raw > /tmp/${name}-new"
             ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /tmp/${name} /tmp/${name}-new; then systemd-sysext refresh && systemctl restart ${name}.service; fi"
 %{ endfor ~}
-%{ else ~}
-    - name: doco-cd.service
-      enabled: true
-      contents: |
-        [Unit]
-        Description=Doco-CD Service
-        Wants=network-online.target docker.service
-        After=network-online.target docker.service
-
-        [Service]
-        Type=oneshot
-        RemainAfterExit=yes
-%{ if try(registry_cache.wait, false) ~}
-        # First boot only: wait for the registry cache so the first pulls fill it; pull upstream after 5 min
-        ExecStartPre=-/usr/bin/sh -c '[ -e /var/lib/registry-cache-waited ] || { /usr/bin/timeout 300 sh -c "until curl -sf ${registry_cache.url}/v2/ >/dev/null; do sleep 5; done"; touch /var/lib/registry-cache-waited; }'
-%{ endif ~}
-        ExecStart=/usr/bin/docker run --name doco-cd --rm --privileged \
-          -v /var/run/docker.sock:/var/run/docker.sock \
-          -v doco-cd.volume:/data \
-          -e POLL_CONFIG="- url: https://github.com/AFGES/infra.git\n  target: %l\n  reference: main" \
-          %{if sops_age_key != ""} -e SOPS_AGE_KEY=${sops_age_key} %{endif}\
-          ghcr.io/kimdre/doco-cd:latest
-
-        [Install]
-        WantedBy=multi-user.target
-%{ endif ~}

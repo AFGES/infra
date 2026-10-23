@@ -28,24 +28,8 @@ The Butane template configures:
   XFS) and mounted on `/var/lib/docker/volumes`, so Docker volumes survive VM rebuilds. Neither the partition
   table nor the filesystem is wiped on reprovisioning. Without a persistent disk, volumes live on the OS disk and are lost
   on rebuild;
-- with `var.sysexts` set: doco-cd and newt as host services from the [AFGES sysext-bakery](#sysexts), see
-  below. Otherwise the two bullets that follow;
-- `doco-cd.service`, a container polling `https://github.com/AFGES/infra.git` (`main` branch) with
-  `target: %l`, i.e. the VM **hostname**. Each node therefore deploys `docker-compose/<node name>/`.
-  `SOPS_AGE_KEY` is passed to doco-cd when `var.sops_age_key` is set (decrypts SOPS-encrypted files in the
-  stack);
-- for nodes with `pangolin_site = true` only: `/etc/newt/config.json` (mode `0600`, root), the Newt config
-  `{"endpoint": "https://pangolin.afges.eu", "id": …, "secret": …}`. The stack's `newt` service mounts it
-  read-only and points `CONFIG_FILE` at it:
-
-  ```yaml
-  newt:
-    environment:
-      CONFIG_FILE: /etc/newt/config.json
-    volumes:
-      - /etc/newt/config.json:/etc/newt/config.json:ro
-  ```
-
+- doco-cd and newt as host services from the AFGES sysext-bakery, see [Sysexts](#sysexts). doco-cd deploys
+  `docker-compose/<node name>/` from `main`;
 - when `var.registry_cache` is set: the registry cache, see [Registry cache](#registry-cache).
 
 ## Conventions
@@ -77,8 +61,8 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
 
 ## Sysexts
 
-With `var.sysexts = true`, doco-cd and newt run on the host from the latest
-[AFGES sysext-bakery](https://afges.github.io/sysext-bakery/) sysexts instead of containers:
+doco-cd and newt run on the host from the latest [AFGES sysext-bakery](https://afges.github.io/sysext-bakery/)
+sysexts:
 
 - Ignition writes only the `systemd-sysupdate` configs (`/etc/sysupdate.<name>.d/<name>.conf`), so a new
   sysext release does not change the Ignition config nor rebuild VMs.
@@ -96,7 +80,7 @@ With `var.sysexts = true`, doco-cd and newt run on the host from the latest
   `systemd-sysupdate.service` refreshes the merged sysexts and restarts the service when the version
   changed, without a reboot.
 
-The stacks then run no `newt` or `socket-proxy` container. newt on the host cannot resolve container names,
+The stacks run no `newt` or `socket-proxy` container. newt on the host cannot resolve container names,
 so Pangolin labels must not set `targets[N].hostname` or `targets[N].healthcheck.hostname`: newt reports
 container bridge IPs, which the host reaches.
 
@@ -133,7 +117,7 @@ variables work around the gate:
 | Variable             | Default | Effect                                                                               |
 | -------------------- | ------- | ------------------------------------------------------------------------------------ |
 | `pangolin_gate`      | `true`  | `false` drops `data.http.pangolin_ready`; `flatcar_nodes` and `flatcar_registry` get `pangolin_ready = ""` |
-| `pangolin_bootstrap` | `false` | `true` builds reverse-proxy without a Pangolin site (no `/etc/newt/config.json`)     |
+| `pangolin_bootstrap` | `false` | `true` builds reverse-proxy without a Pangolin site (no `/etc/newt/newt.env`)     |
 
 The stackopshq/pangolin provider probes `GET /v1/org/<org>` when it is configured. If Pangolin is unreachable
 it only warns, but a rejected API key is an error. `PANGOLIN_SKIP_HEALTH_PROBE=1` skips the probe.
@@ -190,18 +174,9 @@ halfway. Create the site on its own first.
    ```
 
    The targeted graph contains no `pangolin_site` instance and no gate, so it makes no Pangolin API call.
-2. Stop doco-cd on reverse-proxy (the rebuild changed its host key, so `ssh-keygen -R` it first):
-
-   ```sh
-   ssh core@<reverse-proxy LAN IP> sudo systemctl stop doco-cd
-   ```
-
-   Without a config `newt` crash-loops, so Pangolin flaps (see below). Step 5 rebuilds the VM and doco-cd
-   comes back. With `var.sysexts`, skip this step: the stack has no `newt` container, and `newt.service`
-   does not start without `/etc/newt/newt.env`.
-3. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
+2. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
    store it as `pangolin_api_key` in `secrets.yaml`.
-4. Wait until `curl https://api.pangolin.afges.eu/v1/` returns `{"message":"Healthy"}`, then create the
+3. Wait until `curl https://api.pangolin.afges.eu/v1/` returns `{"message":"Healthy"}`, then create the
    reverse-proxy site alone:
 
    ```sh
@@ -209,19 +184,17 @@ halfway. Create the site on its own first.
      -target='module.flatcar_edge.pangolin_site.nodes'
    ```
 
-5. Apply in full (`tofu apply -var proxmox_endpoint=https://192.168.1.106:8006/`). reverse-proxy is rebuilt
+4. Apply in full (`tofu apply -var proxmox_endpoint=https://192.168.1.106:8006/`). reverse-proxy is rebuilt
    with its Newt config, the gate waits for it, then the other nodes follow. Their sites were lost with the
    old Pangolin, so they are recreated, which rebuilds those VMs. If refreshing them fails, remove them from
    the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`, and the same for
    `module.flatcar_registry`).
 
-### Newt crash loops and doco-cd
+### Logs and host keys
 
-This applies to any change, not only recovery, while newt runs as a container (without `var.sysexts`). When a `newt` container crash-loops (e.g. no
-`/etc/newt/config.json`), doco-cd marks the deploy failed (`service newt has a restarting container`) and
-recreates the whole stack about every 3 min, Pangolin and Traefik included on reverse-proxy. So when the
-Newt credential format changes, pushing the compose change to `main` before the VMs carry the new config
-makes every stack flap: rebuild the edge site first and keep the window short.
+newt and doco-cd log to the journal: `journalctl -u sysext-bootstrap -u newt -u doco-cd`. Without
+`/etc/newt/newt.env` (no Pangolin site, or `pangolin_bootstrap`), `newt.service` does not start and the stack
+deploys normally.
 
 VM rebuilds change SSH host keys. Run `ssh-keygen -R <ip>` before connecting.
 
@@ -269,7 +242,6 @@ the `vnet0` / `vmbr0` bridges.
 | `sops_age_key`               | `string`       | `""`         | Age key given to doco-cd as `SOPS_AGE_KEY` (sensitive)             |
 | `image_file_ids`             | `map(string)`  | required     | Proxmox node name to Flatcar image file ID (`flatcar-image` output) |
 | `pangolin_ready`             | `string`       | `""`         | Pangolin sites and VMs wait for this value                         |
-| `sysexts`                    | `bool`         | `false`      | doco-cd and newt from sysexts, see [Sysexts](#sysexts)             |
 | `registry_cache`             | `object`       | `null`       | `{ url, registries, wait = true }`, see [Registry cache](#registry-cache) |
 | `nodes`                      | `map(object)`  | required     | Node definitions, see below                                        |
 | `default_cpu_cores`          | `number`       | `2`          | CPU cores                                                          |
@@ -297,7 +269,7 @@ Every optional attribute without its own default falls back to the matching `def
 | `ha_enabled`         | `bool`         | —       | Register as HA resource                                             |
 | `internet_access`    | `bool`         | `false` | Add a DHCP interface on `vmbr0`                                     |
 | `kernel_modules`     | `list(string)` | `[]`    | Kernel modules loaded at boot                                       |
-| `pangolin_site`      | `bool`         | `false` | Create a Pangolin site and write `/etc/newt/config.json`            |
+| `pangolin_site`      | `bool`         | `false` | Create a Pangolin site and write `/etc/newt/newt.env`               |
 | `persistent_disk`    | `object`       | `null`  | `{ size = optional(number), file_format = optional(string, "raw") }` |
 | `network_interfaces` | `list(object)` | `null`  | `{ bridge, model = "virtio", vlan_id, mac_address }`, overrides `internet_access` |
 
