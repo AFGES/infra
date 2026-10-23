@@ -197,7 +197,8 @@ halfway. Create the site on its own first.
    ```
 
    Without a config `newt` crash-loops, so Pangolin flaps (see below). Step 5 rebuilds the VM and doco-cd
-   comes back.
+   comes back. With `var.sysexts`, skip this step: the stack has no `newt` container, and `newt.service`
+   does not start without `/etc/newt/newt.env`.
 3. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
    store it as `pangolin_api_key` in `secrets.yaml`.
 4. Wait until `curl https://api.pangolin.afges.eu/v1/` returns `{"message":"Healthy"}`, then create the

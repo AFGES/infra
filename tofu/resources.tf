@@ -52,6 +52,7 @@ module "flatcar_edge" {
   image_file_ids      = module.flatcar_image.file_ids
   # The cache waits for Pangolin, so the edge must not wait for the cache; containerd falls back to upstream
   registry_cache = merge(local.registry_cache, { wait = false })
+  sysexts        = local.sysexts
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory

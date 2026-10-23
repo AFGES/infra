@@ -92,9 +92,7 @@ services:
       - "pangolin.public-resources.traefik.full-domain=traefik.afges.eu"
       - "pangolin.public-resources.traefik.auth.sso-enabled=true"
       - "pangolin.public-resources.traefik.targets[0].method=http"
-      - "pangolin.public-resources.traefik.targets[0].hostname=gerbil"
       - "pangolin.public-resources.traefik.targets[0].port=8080"
-      - "pangolin.public-resources.traefik.targets[0].healthcheck.hostname=gerbil"
       - "pangolin.public-resources.traefik.targets[0].healthcheck.port=8080"
       - "pangolin.public-resources.traefik.targets[0].healthcheck.path=/api/overview"
       - "pangolin.public-resources.traefik.targets[0].healthcheck.status=200"
@@ -233,9 +231,7 @@ services:
       - "pangolin.public-resources.crowdsec.full-domain=crowdsec.afges.eu"
       - "pangolin.public-resources.crowdsec.auth.sso-enabled=true"
       - "pangolin.public-resources.crowdsec.targets[0].method=http"
-      - "pangolin.public-resources.crowdsec.targets[0].hostname=crowdsec-web-ui"
       - "pangolin.public-resources.crowdsec.targets[0].port=3000"
-      - "pangolin.public-resources.crowdsec.targets[0].healthcheck.hostname=crowdsec-web-ui"
       - "pangolin.public-resources.crowdsec.targets[0].healthcheck.port=3000"
       - "pangolin.public-resources.crowdsec.targets[0].healthcheck.path=/api/health"
       - "pangolin.public-resources.crowdsec.targets[0].healthcheck.status=200"
@@ -262,9 +258,7 @@ services:
       - "pangolin.public-resources.ged-unistra.protocol=http"
       - "pangolin.public-resources.ged-unistra.full-domain=ged-unistra.afges.eu"
       - "pangolin.public-resources.ged-unistra.targets[0].method=http"
-      - "pangolin.public-resources.ged-unistra.targets[0].hostname=ged-unistra"
       - "pangolin.public-resources.ged-unistra.targets[0].port=80"
-      - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.hostname=ged-unistra"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.port=80"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.path=/health"
       - "pangolin.public-resources.ged-unistra.targets[0].healthcheck.status=200"
@@ -274,57 +268,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
-  socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
-    container_name: socket-proxy
-    <<: *hardening
-    restart: unless-stopped
-    read_only: true
-    tmpfs:
-      - /run
-      - /tmp
-      - /var/lib/haproxy
-    cap_drop:
-      - ALL
-    deploy:
-      resources:
-        limits:
-          memory: 64m
-          pids: 50
-    environment:
-      CONTAINERS: 1
-      EVENTS: 1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - socket-proxy
-
-  # Newt: Pangolin tunnel client – registers labeled services as resources
-  newt:
-    image: docker.io/fosrl/newt:latest@sha256:0189c8287058b800cca825590e4c39946b3815344ca48678dd0b96616d639319
-    container_name: newt
-    <<: *hardening
-    restart: unless-stopped
-    cap_drop:
-      - ALL
-    deploy:
-      resources:
-        limits:
-          memory: 128m
-          pids: 200
-    depends_on:
-      - socket-proxy
-    environment:
-      CONFIG_FILE: /etc/newt/config.json
-      DOCKER_SOCKET: tcp://socket-proxy:2375
-    # Site credentials written by Ignition (flatcar-vm module)
-    volumes:
-      - /etc/newt/config.json:/etc/newt/config.json:ro
-    networks:
-      - default
-      - socket-proxy
 
 volumes:
   gerbil_config:
@@ -338,10 +281,6 @@ networks:
   default:
     driver: bridge
     name: pangolin
-  socket-proxy:
-    driver: bridge
-    name: pangolin-socket-proxy
-    internal: true
   db:
     driver: bridge
     name: pangolin-db
