@@ -102,6 +102,10 @@ Use this when the Pangolin data on reverse-proxy's persistent disk (disk contain
 `pangolin_site["reverse-proxy"]` then cannot be recreated, and since its Newt config is part of the Ignition
 config, the VM cannot be rebuilt either.
 
+Run the steps in this order. In a plan where reverse-proxy is replaced and its `pangolin_site` is new,
+OpenTofu destroys the VM before creating the site, so the site create hits a dead API and the apply fails
+halfway. Create the site on its own first.
+
 1. Bring Pangolin up without a site for reverse-proxy, using the Proxmox IP endpoint (`pve.afges.eu` goes
    through Pangolin):
 
@@ -112,14 +116,38 @@ config, the VM cannot be rebuilt either.
    ```
 
    The targeted graph contains no `pangolin_site` instance and no gate, so it makes no Pangolin API call.
-   reverse-proxy's `newt` service has no config and restarts in a loop. This is expected.
-2. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
+2. Stop doco-cd on reverse-proxy (the rebuild changed its host key, so `ssh-keygen -R` it first):
+
+   ```sh
+   ssh core@<reverse-proxy LAN IP> sudo systemctl stop doco-cd
+   ```
+
+   Without a config `newt` crash-loops, so Pangolin flaps (see below). Step 5 rebuilds the VM and doco-cd
+   comes back.
+3. Run Pangolin's initial setup (admin account, `afges` organization). Create an integration API key and
    store it as `pangolin_api_key` in `secrets.yaml`.
-3. Apply again without `pangolin_bootstrap` (keep the Proxmox IP endpoint). This creates a fresh
-   `reverse-proxy` site and rebuilds reverse-proxy once more with its Newt config. The other nodes' sites
-   were lost with the old Pangolin. They must be recreated, which rebuilds those VMs. If refreshing them
-   fails, remove them from the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`).
-4. In the Pangolin UI, bind the UI-managed resources (`pve.afges.eu`) to the new sites again.
+4. Wait until `curl https://api.pangolin.afges.eu/v1/` returns `{"message":"Healthy"}`, then create the
+   reverse-proxy site alone:
+
+   ```sh
+   tofu apply -var proxmox_endpoint=https://192.168.1.106:8006/ \
+     -target='module.flatcar_edge.pangolin_site.nodes'
+   ```
+
+5. Apply in full (`tofu apply -var proxmox_endpoint=https://192.168.1.106:8006/`). reverse-proxy is rebuilt
+   with its Newt config, the gate waits for it, then the other nodes follow. Their sites were lost with the
+   old Pangolin, so they are recreated, which rebuilds those VMs. If refreshing them fails, remove them from
+   the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`).
+
+### Newt crash loops and doco-cd
+
+This applies to any change, not only recovery. When a `newt` container crash-loops (e.g. no
+`/etc/newt/config.json`), doco-cd marks the deploy failed (`service newt has a restarting container`) and
+recreates the whole stack about every 3 min, Pangolin and Traefik included on reverse-proxy. So when the
+Newt credential format changes, pushing the compose change to `main` before the VMs carry the new config
+makes every stack flap: rebuild the edge site first and keep the window short.
+
+VM rebuilds change SSH host keys. Run `ssh-keygen -R <ip>` before connecting.
 
 ## Usage
 
