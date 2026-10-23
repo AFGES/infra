@@ -14,8 +14,14 @@ It lives outside `flatcar-vm` so several `flatcar-vm` calls share one download p
 
 ## Lifecycle
 
-- The version is resolved at plan time. The image is downloaded with `overwrite = false`, so a new release
-  does not replace the file nor the VMs built from it; Flatcar updates itself in place.
+- The version is resolved at plan time. A new stable release changes `url` and `checksum`, which forces the
+  download to be **replaced**: the next apply re-downloads the image (about 1 min per node). `overwrite =
+  false` does not prevent this; it only stops OpenTofu from re-downloading a file whose size changed on the
+  node.
+- VMs built from the image are not rebuilt. The plan shows their `disk.import_from` as an in-place update
+  (`known after apply`), but the file ID (`local:import/flatcar-production-proxmoxve.qcow2`) stays the same,
+  so the update is a no-op. Running VMs keep their disk; Flatcar updates itself in place. Only VMs created or
+  rebuilt afterwards start from the new release.
 
 ## Usage
 

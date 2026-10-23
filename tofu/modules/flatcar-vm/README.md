@@ -119,6 +119,27 @@ tofu plan -var pangolin_gate=false -refresh=false
 
 `-target` on resources outside Pangolin works too.
 
+### Any apply that rebuilds reverse-proxy
+
+`pve.afges.eu` goes through Pangolin on reverse-proxy. Use the Proxmox IP endpoint
+(`-var proxmox_endpoint=https://192.168.1.106:8006/`) only while `pve.afges.eu` or Pangolin is down.
+
+An apply that replaces reverse-proxy through `pve.afges.eu` cuts its own API access as soon as the VM shuts
+down (`dial tcp …:443: connect: connection refused`), and leaves the VM stopped without its HA resource.
+Pangolin is then down, so finish the apply on the IP endpoint, without refreshing the `pangolin_site`
+resources (the Pangolin API died with the VM):
+
+```sh
+PANGOLIN_SKIP_HEALTH_PROBE=1 tofu apply -refresh=false \
+  -var proxmox_endpoint=https://192.168.1.106:8006/
+```
+
+The gate (`data.http.pangolin_ready`) then waits for the new reverse-proxy, about 6 min.
+
+`-target` on another module call does not avoid the rebuild: `flatcar_nodes` and `flatcar_registry` reference
+the gate, which depends on the port forwards and thus on reverse-proxy, even with `pangolin_gate = false`. To
+roll out a change to the other nodes before the edge, leave the edge's input unchanged for that apply.
+
 ### Rebuilding reverse-proxy from scratch
 
 Use this when the Pangolin data on reverse-proxy's persistent disk (disk container 9001) is lost.
@@ -160,7 +181,8 @@ halfway. Create the site on its own first.
 5. Apply in full (`tofu apply -var proxmox_endpoint=https://192.168.1.106:8006/`). reverse-proxy is rebuilt
    with its Newt config, the gate waits for it, then the other nodes follow. Their sites were lost with the
    old Pangolin, so they are recreated, which rebuilds those VMs. If refreshing them fails, remove them from
-   the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`).
+   the state first (`tofu state rm 'module.flatcar_nodes.pangolin_site.nodes'`, and the same for
+   `module.flatcar_registry`).
 
 ### Newt crash loops and doco-cd
 
