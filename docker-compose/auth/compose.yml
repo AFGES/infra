@@ -3,7 +3,8 @@ name: auth
 # Shared non-secret authentik settings (secrets live in env/*.env)
 x-authentik-environment: &authentik-environment
   AUTHENTIK_POSTGRESQL__HOST: postgresql
-  # Only trust X-Forwarded-For from Newt (auth network), so reputation sees real client IPs
+  # Only trust X-Forwarded-For from the auth network: host newt connects from its gateway 172.30.0.1,
+  # so reputation sees real client IPs
   AUTHENTIK_LISTEN__TRUSTED_PROXY_CIDRS: 172.30.0.0/24
   AUTHENTIK_DISABLE_STARTUP_ANALYTICS: "true"
   AUTHENTIK_ERROR_REPORTING__ENABLED: "false"
@@ -73,9 +74,7 @@ services:
       - "pangolin.public-resources.authentik.protocol=http"
       - "pangolin.public-resources.authentik.full-domain=auth.afges.eu"
       - "pangolin.public-resources.authentik.targets[0].method=http"
-      - "pangolin.public-resources.authentik.targets[0].hostname=authentik-server"
       - "pangolin.public-resources.authentik.targets[0].port=9000"
-      - "pangolin.public-resources.authentik.targets[0].healthcheck.hostname=authentik-server"
       - "pangolin.public-resources.authentik.targets[0].healthcheck.port=9000"
       - "pangolin.public-resources.authentik.targets[0].healthcheck.path=/-/health/live/"
       - "pangolin.public-resources.authentik.targets[0].healthcheck.status=200"
@@ -108,36 +107,6 @@ services:
       - default
       - backend
 
-  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
-  socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
-    container_name: socket-proxy
-    restart: unless-stopped
-    environment:
-      CONTAINERS: 1
-      EVENTS: 1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - socket-proxy
-
-  # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
-  newt:
-    image: docker.io/fosrl/newt:latest@sha256:3465d85200cceb0f46dad8e63a40b69ec043a81df66ed0c514714302e9b83dde
-    container_name: newt
-    restart: unless-stopped
-    depends_on:
-      - socket-proxy
-    environment:
-      CONFIG_FILE: /etc/newt/config.json
-      DOCKER_SOCKET: tcp://socket-proxy:2375
-    # Site credentials written by Ignition (flatcar-vm module)
-    volumes:
-      - /etc/newt/config.json:/etc/newt/config.json:ro
-    networks:
-      - default
-      - socket-proxy
-
 volumes:
   database: {}
   data: {}
@@ -154,8 +123,4 @@ networks:
   backend:
     driver: bridge
     name: auth-backend
-    internal: true
-  socket-proxy:
-    driver: bridge
-    name: auth-socket-proxy
     internal: true

@@ -147,6 +147,7 @@ module "flatcar_nodes" {
   image_file_ids      = module.flatcar_image.file_ids
   pangolin_ready      = try(data.http.pangolin_ready[0].id, "")
   registry_cache      = local.registry_cache
+  sysexts             = local.sysexts
 
   default_cpu_cores          = local.flatcar_defaults.cpu_cores
   default_memory             = local.flatcar_defaults.memory

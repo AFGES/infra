@@ -23,9 +23,7 @@ services:
       - "pangolin.public-resources.victoriametrics.protocol=http"
       - "pangolin.public-resources.victoriametrics.full-domain=victoriametrics.afges.eu"
       - "pangolin.public-resources.victoriametrics.targets[0].method=http"
-      - "pangolin.public-resources.victoriametrics.targets[0].hostname=victoriametrics"
       - "pangolin.public-resources.victoriametrics.targets[0].port=8428"
-      - "pangolin.public-resources.victoriametrics.targets[0].healthcheck.hostname=victoriametrics"
       - "pangolin.public-resources.victoriametrics.targets[0].healthcheck.port=8428"
       - "pangolin.public-resources.victoriametrics.targets[0].healthcheck.path=/-/healthy"
       - "pangolin.public-resources.victoriametrics.targets[0].healthcheck.status=200"
@@ -80,9 +78,7 @@ services:
       - "pangolin.public-resources.alertmanager.protocol=http"
       - "pangolin.public-resources.alertmanager.full-domain=alertmanager.afges.eu"
       - "pangolin.public-resources.alertmanager.targets[0].method=http"
-      - "pangolin.public-resources.alertmanager.targets[0].hostname=alertmanager"
       - "pangolin.public-resources.alertmanager.targets[0].port=9093"
-      - "pangolin.public-resources.alertmanager.targets[0].healthcheck.hostname=alertmanager"
       - "pangolin.public-resources.alertmanager.targets[0].healthcheck.port=9093"
       - "pangolin.public-resources.alertmanager.targets[0].healthcheck.path=/-/healthy"
       - "pangolin.public-resources.alertmanager.targets[0].healthcheck.status=200"
@@ -117,42 +113,10 @@ services:
       - "pangolin.public-resources.grafana.protocol=http"
       - "pangolin.public-resources.grafana.full-domain=grafana.afges.eu"
       - "pangolin.public-resources.grafana.targets[0].method=http"
-      - "pangolin.public-resources.grafana.targets[0].hostname=grafana"
       - "pangolin.public-resources.grafana.targets[0].port=3000"
-      - "pangolin.public-resources.grafana.targets[0].healthcheck.hostname=grafana"
       - "pangolin.public-resources.grafana.targets[0].healthcheck.port=3000"
       - "pangolin.public-resources.grafana.targets[0].healthcheck.path=/api/health"
       - "pangolin.public-resources.grafana.targets[0].healthcheck.status=200"
-
-  # Socket proxy: limits Docker API access for Newt (read-only, CONTAINERS+EVENTS only)
-  socket-proxy:
-    image: docker.io/tecnativa/docker-socket-proxy:latest@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
-    container_name: socket-proxy
-    restart: unless-stopped
-    environment:
-      CONTAINERS: 1
-      EVENTS: 1
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    networks:
-      - socket-proxy
-
-  # Newt: Pangolin tunnel client – exposes services through the Pangolin reverse proxy
-  newt:
-    image: docker.io/fosrl/newt:latest@sha256:0189c8287058b800cca825590e4c39946b3815344ca48678dd0b96616d639319
-    container_name: newt
-    restart: unless-stopped
-    depends_on:
-      - socket-proxy
-    environment:
-      CONFIG_FILE: /etc/newt/config.json
-      DOCKER_SOCKET: tcp://socket-proxy:2375
-    # Site credentials written by Ignition (flatcar-vm module)
-    volumes:
-      - /etc/newt/config.json:/etc/newt/config.json:ro
-    networks:
-      - default
-      - socket-proxy
 
 volumes:
   vmdata: {}
@@ -164,7 +128,3 @@ networks:
   default:
     driver: bridge
     name: monitoring
-  socket-proxy:
-    driver: bridge
-    name: monitoring-socket-proxy
-    internal: true
