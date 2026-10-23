@@ -32,6 +32,11 @@ scrape_configs:
     static_configs:
       - targets: ["10.20.0.3:9300"]
 
+  # Zot registry cache (registry-cache VM)
+  - job_name: "zot"
+    static_configs:
+      - targets: ["10.20.0.6:5000"]
+
   # PVE nodes — using Prometheus Node Exporter (port 9100)
   - job_name: "pve-nodes"
     static_configs:

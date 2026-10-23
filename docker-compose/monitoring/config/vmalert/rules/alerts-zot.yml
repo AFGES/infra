@@ -1,0 +1,32 @@
+# VMAlert alerting rules for the Zot registry cache (registry-cache VM)
+# Clients fall back to the upstream registries, so these are warnings
+groups:
+  - name: zot
+    interval: 30s
+    rules:
+      # 404s are normal (cache misses answered upstream, fallbacks), only 5xx count
+      - alert: ZotHighErrorRate
+        expr: sum(rate(zot_http_requests_total{code=~"5.."}[5m])) / sum(rate(zot_http_requests_total[5m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Zot registry cache answers more than 10% of requests with 5xx"
+          description: "{{ $value | humanizePercentage }} of Zot requests failed with 5xx over the last 5 minutes. VMs pull from the upstream registries meanwhile."
+
+      - alert: ZotDown
+        expr: up{job="zot"} == 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Zot registry cache is down on {{ $labels.instance }}"
+          description: "Zot at {{ $labels.instance }} has been down for more than 5 minutes. VMs pull from the upstream registries meanwhile."
+
+      - alert: ZotTooManyRestarts
+        expr: changes(process_start_time_seconds{job="zot"}[15m]) > 2
+        labels:
+          severity: warning
+        annotations:
+          summary: "Zot on {{ $labels.instance }} restarted more than twice in 15 minutes"
+          description: "Zot at {{ $labels.instance }} restarted {{ $value }} times in the last 15 minutes. This may indicate a crash loop."
