@@ -5,6 +5,8 @@ resource "terraform_data" "triggers" {
 resource "proxmox_virtual_environment_vm" "this" {
   node_name = var.node_name
   vm_id     = var.id
+  # Move the VM on node_name change instead of rebuilding it
+  migrate = true
 
   name        = "${var.name}.afges.eu"
   description = "${var.name} VM, managed by OpenTofu"

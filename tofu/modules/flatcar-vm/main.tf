@@ -8,6 +8,12 @@ locals {
   # Effective Proxmox node per VM
   vm_node_names = { for k, v in var.nodes : k => coalesce(v.node_name, var.default_node_name) }
 
+  # Ignition snippet copies: one per VM on every cluster node ("<vm>/<node>")
+  ignition_files = {
+    for pair in setproduct(keys(var.nodes), data.proxmox_virtual_environment_nodes.available.names) :
+    "${pair[0]}/${pair[1]}" => { vm = pair[0], node = pair[1] }
+  }
+
   # Compute effective network interfaces per node
   node_network_interfaces = {
     for k, v in var.nodes : k => coalesce(
@@ -59,17 +65,18 @@ data "ct_config" "flatcar_ignition" {
   strict = true
 }
 
-# Upload Ignition configurations to Proxmox
+# Upload Ignition configurations to every Proxmox node
+# "local" is not shared: a VM migrated or failed over needs the snippet on its new node
 resource "proxmox_virtual_environment_file" "flatcar_ignition" {
-  for_each = var.nodes
+  for_each = local.ignition_files
 
   content_type = "snippets"
   datastore_id = "local"
-  node_name    = local.vm_node_names[each.key]
+  node_name    = each.value.node
 
   source_raw {
-    data      = data.ct_config.flatcar_ignition[each.key].rendered
-    file_name = "flatcar-${each.key}.ign"
+    data      = data.ct_config.flatcar_ignition[each.value.vm].rendered
+    file_name = "flatcar-${each.value.vm}.ign"
   }
 }
 
@@ -104,7 +111,7 @@ module "vms" {
   memory             = coalesce(each.value.memory, var.default_memory)
   start_on_boot      = coalesce(each.value.start_on_boot, var.default_start_on_boot)
   start_on_provision = coalesce(each.value.start_on_provision, var.default_start_on_provision)
-  ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition[each.key].id
+  ignition_file_id   = proxmox_virtual_environment_file.flatcar_ignition["${each.key}/${local.vm_node_names[each.key]}"].id
 
   # Use computed network_interfaces based on internet_access flag
   network_interfaces = local.node_network_interfaces[each.key]

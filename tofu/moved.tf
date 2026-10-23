@@ -24,3 +24,34 @@ moved {
   from = module.flatcar_nodes.proxmox_download_file.flatcar_img
   to   = module.flatcar_image.proxmox_download_file.flatcar_img["squirtle"]
 }
+
+# Ignition snippets now uploaded to every node, keyed "<vm>/<node>"; existing copies are on squirtle
+moved {
+  from = module.flatcar_edge.proxmox_virtual_environment_file.flatcar_ignition["reverse-proxy"]
+  to   = module.flatcar_edge.proxmox_virtual_environment_file.flatcar_ignition["reverse-proxy/squirtle"]
+}
+
+moved {
+  from = module.flatcar_registry.proxmox_virtual_environment_file.flatcar_ignition["registry-cache"]
+  to   = module.flatcar_registry.proxmox_virtual_environment_file.flatcar_ignition["registry-cache/squirtle"]
+}
+
+moved {
+  from = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["monitoring"]
+  to   = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["monitoring/squirtle"]
+}
+
+moved {
+  from = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["auth"]
+  to   = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["auth/squirtle"]
+}
+
+moved {
+  from = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["password-manager"]
+  to   = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["password-manager/squirtle"]
+}
+
+moved {
+  from = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["n8n"]
+  to   = module.flatcar_nodes.proxmox_virtual_environment_file.flatcar_ignition["n8n/squirtle"]
+}

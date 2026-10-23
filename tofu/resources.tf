@@ -34,11 +34,11 @@ locals {
   }
 }
 
-# Flatcar image, downloaded once per Proxmox node hosting a VM
+# Flatcar image, downloaded to every Proxmox node so a VM can be placed on any of them
 module "flatcar_image" {
   source = "./modules/flatcar-image"
 
-  node_names = [local.flatcar_defaults.node_name]
+  node_names = ["bulbasaur", "charmander", "squirtle"]
 }
 
 module "flatcar_edge" {
@@ -155,7 +155,8 @@ module "flatcar_nodes" {
 
   nodes = {
     monitoring = {
-      id = 2
+      id        = 2
+      node_name = "charmander"
       persistent_disk = {
         size = 100
       }
@@ -164,8 +165,9 @@ module "flatcar_nodes" {
     }
 
     auth = {
-      id     = 3
-      memory = 4
+      id        = 3
+      node_name = "charmander"
+      memory    = 4
       persistent_disk = {
         size = 20
       }
@@ -174,7 +176,8 @@ module "flatcar_nodes" {
     }
 
     password-manager = {
-      id = 4
+      id        = 4
+      node_name = "bulbasaur"
       persistent_disk = {
         size = 20
       }
@@ -183,8 +186,9 @@ module "flatcar_nodes" {
     }
 
     n8n = {
-      id     = 5
-      memory = 4
+      id        = 5
+      node_name = "bulbasaur"
+      memory    = 4
       persistent_disk = {
         size = 20
       }

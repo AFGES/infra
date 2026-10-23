@@ -6,6 +6,8 @@ resource "proxmox_virtual_environment_vm" "disk_container" {
   node_name = var.node_name
   vm_id     = var.vm_id
   name      = var.name
+  # Move the container on node_name change; recreating it would destroy the data disk
+  migrate = true
 
   started  = false
   on_boot  = false
