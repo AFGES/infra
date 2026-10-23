@@ -28,6 +28,8 @@ The Butane template configures:
   XFS) and mounted on `/var/lib/docker/volumes`, so Docker volumes survive VM rebuilds. Neither the partition
   table nor the filesystem is wiped on reprovisioning. Without a persistent disk, volumes live on the OS disk and are lost
   on rebuild;
+- with `var.sysexts` set: doco-cd and newt as host services from the [AFGES sysext-bakery](#sysexts), see
+  below. Otherwise the two bullets that follow;
 - `doco-cd.service`, a container polling `https://github.com/AFGES/infra.git` (`main` branch) with
   `target: %l`, i.e. the VM **hostname**. Each node therefore deploys `docker-compose/<node name>/`.
   `SOPS_AGE_KEY` is passed to doco-cd when `var.sops_age_key` is set (decrypts SOPS-encrypted files in the
@@ -73,6 +75,46 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
   (e.g. the `id` of an `http` data source polling its API) to create them after the Pangolin host is up.
 - Persistent disks live in separate disk-container VMs and are not destroyed when a VM is rebuilt.
 
+## Sysexts
+
+With `var.sysexts = true`, doco-cd and newt run on the host from the latest
+[AFGES sysext-bakery](https://afges.github.io/sysext-bakery/) sysexts instead of containers:
+
+- Ignition writes only the `systemd-sysupdate` configs (`/etc/sysupdate.<name>.d/<name>.conf`), so a new
+  sysext release does not change the Ignition config nor rebuild VMs.
+- `sysext-bootstrap.service` runs `systemd-sysupdate -C <name> update` for each sysext missing from
+  `/etc/extensions/` (first boot), then `systemd-sysext refresh`. It retries every 10 s until the bakery
+  answers. The sysexts reload systemd on merge, which starts the `doco-cd.service` and `newt.service` they
+  ship (upheld by `multi-user.target`).
+- `/etc/doco-cd/doco-cd.env` (`0600`): `HTTP_PORT=8080` (traefik owns `:80` on reverse-proxy),
+  `POLL_CONFIG_FILE=/etc/doco-cd/poll-config.yaml` and `SOPS_AGE_KEY` when set. `poll-config.yaml` polls
+  `main` with `target: <node name>`. Data lives in `/var/lib/doco-cd`.
+- for nodes with `pangolin_site = true`: `/etc/newt/newt.env` (`0600`) with `PANGOLIN_ENDPOINT`, `NEWT_ID`,
+  `NEWT_SECRET` and `DOCKER_SOCKET=unix:///var/run/docker.sock`. A drop-in orders newt after
+  `docker.service`: newt disables its Docker integration when the socket is missing at start.
+- `systemd-sysupdate.timer` fetches new versions from the bakery. A drop-in per sysext on
+  `systemd-sysupdate.service` refreshes the merged sysexts and restarts the service when the version
+  changed, without a reboot.
+
+The stacks then run no `newt` or `socket-proxy` container. newt on the host cannot resolve container names,
+so Pangolin labels must not set `targets[N].hostname` or `targets[N].healthcheck.hostname`: newt reports
+container bridge IPs, which the host reaches.
+
+Check a VM with `systemd-sysext status`, `journalctl -u doco-cd -u newt` and
+`sudo systemctl start systemd-sysupdate`.
+
+### lldpd
+
+`var.lldpd = true` adds the `lldpd` sysext (independent of `var.sysexts`: the sysext machinery is enabled
+when either is set) and `/etc/lldpd.d/afges.conf` (port IDs by interface name, `ens*` only). The sysext starts
+`lldpd` on merge and boot (`Upholds=` drop-in) and creates the `_lldpd` privsep user (`sysusers.d`); it needs
+the `lldpd-1.0.22-1` build or newer.
+
+UniFi then shows the VM behind its PVE node, provided the host bridge forwards LLDP: Ansible role
+`pve-initial` sets `group_fwd_mask` to `0x4000` on `vmbr0` (`pve_initial_lldp_forward_bridges`). Check from
+the VM with `lldpcli show neighbors`. A NIC with the Proxmox firewall enabled goes through a `fwbr` bridge
+that drops the frames.
+
 ## Registry cache
 
 `var.registry_cache` makes Docker pull through a pull-through cache (the Zot stack in
@@ -83,7 +125,7 @@ Networking defaults to a single `vnet0` interface. `internet_access = true` adds
 - one `/etc/docker/certs.d/<registry>/hosts.toml` per entry of `registries`, pointing at
   `<url>/v2/<registry>` (`override_path`). containerd tries the cache first and falls back to the registry
   itself when the cache fails, so image references in the compose files stay unchanged.
-- with `wait = true` (default): on first boot only, `doco-cd.service` waits up to 5 min for `<url>/v2/` to
+- with `wait = true` (default): on first boot only, `doco-cd.service` (a drop-in with the sysexts) waits up to 5 min for `<url>/v2/` to
   answer, so the first pulls after a rebuild fill the cache. On timeout doco-cd starts anyway and pulls
   upstream. The marker `/var/lib/registry-cache-waited` skips the wait on later boots; a rebuild starts from
   a fresh OS disk, so it waits again.
@@ -186,7 +228,7 @@ halfway. Create the site on its own first.
 
 ### Newt crash loops and doco-cd
 
-This applies to any change, not only recovery. When a `newt` container crash-loops (e.g. no
+This applies to any change, not only recovery, while newt runs as a container (without `var.sysexts`). When a `newt` container crash-loops (e.g. no
 `/etc/newt/config.json`), doco-cd marks the deploy failed (`service newt has a restarting container`) and
 recreates the whole stack about every 3 min, Pangolin and Traefik included on reverse-proxy. So when the
 Newt credential format changes, pushing the compose change to `main` before the VMs carry the new config
@@ -238,6 +280,8 @@ the `vnet0` / `vmbr0` bridges.
 | `sops_age_key`               | `string`       | `""`         | Age key given to doco-cd as `SOPS_AGE_KEY` (sensitive)             |
 | `image_file_ids`             | `map(string)`  | required     | Proxmox node name to Flatcar image file ID (`flatcar-image` output) |
 | `pangolin_ready`             | `string`       | `""`         | Pangolin sites and VMs wait for this value                         |
+| `sysexts`                    | `bool`         | `false`      | doco-cd and newt from sysexts, see [Sysexts](#sysexts)             |
+| `lldpd`                      | `bool`         | `false`      | lldpd sysext for the UniFi topology, see [lldpd](#lldpd)           |
 | `registry_cache`             | `object`       | `null`       | `{ url, registries, wait = true }`, see [Registry cache](#registry-cache) |
 | `nodes`                      | `map(object)`  | required     | Node definitions, see below                                        |
 | `default_cpu_cores`          | `number`       | `2`          | CPU cores                                                          |

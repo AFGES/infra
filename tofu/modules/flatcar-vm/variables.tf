@@ -31,6 +31,18 @@ variable "registry_cache" {
   default = null
 }
 
+variable "sysexts" {
+  description = "Run doco-cd and newt from the latest AFGES sysext-bakery sysexts; false runs both as containers"
+  type        = bool
+  default     = false
+}
+
+variable "lldpd" {
+  description = "Run lldpd from the AFGES sysext-bakery so UniFi places the VMs behind their PVE node (needs the bridge LLDP forwarding set by Ansible role pve-initial)"
+  type        = bool
+  default     = false
+}
+
 variable "nodes" {
   description = "Map of node configurations. Each key becomes the node hostname, and each value contains the node's configuration."
   type = map(object({
