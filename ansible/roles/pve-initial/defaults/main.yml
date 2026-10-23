@@ -2,3 +2,6 @@
 ---
 # defaults file for roles/pve-initial
 pve_initial_lldp_interface_pattern: "eno*,ens*"
+# Bridges the guests' LLDP frames cross to reach the switch (UniFi topology)
+pve_initial_lldp_forward_bridges:
+    - vmbr0

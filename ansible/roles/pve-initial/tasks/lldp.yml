@@ -23,3 +23,28 @@
       enabled: true
       state: started
   ignore_errors: "{{ ansible_check_mode }}"
+
+# 0x4000 lets the bridge forward LLDP (01:80:c2:00:00:0e) from guests to the switch
+- name: Forward LLDP frames on guest bridges at creation
+  ansible.builtin.copy:
+      content: |
+          {% for bridge in pve_initial_lldp_forward_bridges %}
+          SUBSYSTEM=="net", ACTION=="add", KERNEL=="{{ bridge }}", ATTR{bridge/group_fwd_mask}="0x4000"
+          {% endfor %}
+      dest: /etc/udev/rules.d/99-bridge-lldp-fwd.rules
+      owner: root
+      group: root
+      mode: "0644"
+
+- name: Read current group_fwd_mask of guest bridges
+  ansible.builtin.slurp:
+      src: "/sys/class/net/{{ item }}/bridge/group_fwd_mask"
+  loop: "{{ pve_initial_lldp_forward_bridges }}"
+  register: pve_initial_group_fwd_mask
+
+- name: Forward LLDP frames on running guest bridges
+  ansible.builtin.shell: "echo 0x4000 > /sys/class/net/{{ item.item }}/bridge/group_fwd_mask"
+  loop: "{{ pve_initial_group_fwd_mask.results }}"
+  loop_control:
+      label: "{{ item.item }}"
+  when: (item.content | b64decode | trim) != "0x4000"
